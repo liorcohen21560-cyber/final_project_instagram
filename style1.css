@@ -1,0 +1,173 @@
+/* General page reset and base font settings */
+body, html { 
+    height: 100%; 
+    margin: 0; 
+    /* Using system fonts to mimic the native app feel */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+    background-color: #ffffff;
+    overflow-x: hidden;
+}
+
+/* Main container for the two-column split screen */
+.main-wrapper {
+    display: flex;
+    height: calc(100vh - 100px); /* Leave exactly 100px for the footer */
+    width: 100vw;
+}
+
+/* LEFT SIDE: Holds the headline and decorative image */
+.visual-section {
+    flex: 1.2; /* Takes slightly more space than the login section */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+/* RIGHT SIDE: Contains the login form */
+.login-section {
+    flex: 1; 
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end; /* Aligns content toward the center of the total screen */
+    padding-left: 60px; /* Space from the center separator */
+    border-left: 1px solid #efefef; /* The vertical line between columns */
+}
+
+/* Constraints the login form width for better visual balance */
+.login-content {
+    width: 100%;
+    max-width: 580px; 
+}
+
+.login-header {
+    text-align: right;
+    font-weight: bold;
+    font-size: 1.15rem;
+    margin-bottom: 30px;
+    color: #000;
+}
+
+/* Styling for Username/Password input fields */
+.custom-input {
+    width: 100%;
+    padding: 17px 22px; 
+    border-radius: 12px; /* Smooth rounded corners */
+    border: 1px solid #dbdbdb;
+    margin-bottom: 15px;
+    font-size: 15px;
+    outline: none; /* Disables default blue browser highlight */
+}
+
+/* Primary blue login button styling */
+.login-btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: 30px;
+    background-color: #a2c7f5; /* Light blue representing a disabled state */
+    color: white;
+    border: none;
+    font-weight: bold;
+    margin-top: 10px;
+    margin-bottom: 25px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.forgot-pass {
+    text-align: center;
+    display: block;
+    color: #000;
+    text-decoration: none;
+    font-size: 14px;
+    margin-bottom: 70px;
+}
+
+/* Styles for Facebook and Create Account buttons */
+.outline-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 35px;
+    border: 1px solid #dbdbdb;
+    background: white;
+    color: #000;
+    font-weight: 500;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.create-btn {
+    border-color: #0095f6; /* Blue border for 'Create Account' */
+    color: #0095f6;
+}
+
+/* Positioning the Instagram icon in the visual area */
+.insta-icon {
+    position: absolute;
+    top: 40px;
+    right: 40px;
+    width: 55px;
+}
+
+.headline {
+    font-size: 3.5rem;
+    font-weight: bold;
+    text-align: center;
+    line-height: 1.1;
+    margin-bottom: 20px;
+}
+
+/* Text gradient effect: The text color is removed, showing the background gradient */
+.gradient-txt {
+    background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.main-img {
+    width: 100%;
+    max-width: 560px;
+}
+
+.meta-logo {
+    width: 70px;
+    margin-top: 30px;
+}
+
+/* FOOTER: Fixed height and centered items */
+.footer {
+    height: 100px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #ffffff;
+    color: #737373;
+    font-size: 12px;
+    padding: 20px 0;
+}
+
+.footer-links {
+    display: flex;
+    flex-wrap: wrap; 
+    justify-content: center;
+    margin-bottom: 10px;
+    gap: 15px;
+}
+
+.footer-links a {
+    color: #737373;
+    text-decoration: none;
+}
+
+.copyright {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
