@@ -17,12 +17,13 @@ body, html {
 
 /* LEFT SIDE: Holds the headline and decorative image */
 .visual-section {
-    flex: 1.2; /* Takes slightly more space than the login section */
+    flex: 1.75; /* Takes slightly more space than the login section */
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     position: relative;
+    border-left: 2px solid #dbdbdb; /* The vertical line between columns */
 }
 
 /* RIGHT SIDE: Contains the login form */
@@ -58,6 +59,7 @@ body, html {
     border: 1px solid #dbdbdb;
     margin-bottom: 15px;
     font-size: 15px;
+    font-weight: 500;
     outline: none; /* Disables default blue browser highlight */
 }
 
@@ -69,7 +71,6 @@ body, html {
     background-color: #a2c7f5; /* Light blue representing a disabled state */
     color: white;
     border: none;
-    font-weight: bold;
     margin-top: 10px;
     margin-bottom: 25px;
     font-size: 16px;
@@ -93,7 +94,6 @@ body, html {
     border: 1px solid #dbdbdb;
     background: white;
     color: #000;
-    font-weight: 500;
     margin-bottom: 12px;
     display: flex;
     align-items: center;
@@ -116,7 +116,7 @@ body, html {
 
 .headline {
     font-size: 3.5rem;
-    font-weight: bold;
+    font-family: 'Times New Roman', Times, serif;
     text-align: center;
     line-height: 1.1;
     margin-bottom: 20px;
@@ -151,6 +151,7 @@ body, html {
     color: #737373;
     font-size: 12px;
     padding: 20px 0;
+    border-top: 1px solid #dbdbdb; /* The vertical line between columns */
 }
 
 .footer-links {
