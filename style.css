@@ -214,3 +214,13 @@ body {
     color: #737373;
     text-decoration: none;
 }
+
+.error-message {
+    color: #ed4956;
+    font-size: 13px;
+    text-align: right;
+    margin-top: -10px;
+    margin-bottom: 15px;
+    display: none; /* Hidden until triggered by JS */
+    font-weight: 500;
+}
