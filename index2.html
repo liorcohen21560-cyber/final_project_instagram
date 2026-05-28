@@ -6,7 +6,7 @@
     <title>Instagram - Final Sports Feed</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="./style.css?v=2">
 </head>
 <body>
 
@@ -17,15 +17,17 @@
         <div class="sidebar-item"><img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/home.png" class="sidebar-icon-img" alt="Home"></div>
         <div class="sidebar-item"><img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/reels.png" class="sidebar-icon-img" alt="Reels"></div>
         <div class="sidebar-item"><img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/messages.png" class="sidebar-icon-img" alt="Messages"></div>
-        
         <div class="sidebar-item" id="search-btn"><img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/search.png" class="sidebar-icon-img" alt="Search"></div>
-        
         <div class="sidebar-item"><img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/explore.png" class="sidebar-icon-img" alt="Explore"></div>
         <div class="sidebar-item"><img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/like.png" class="sidebar-icon-img" alt="Activity"></div>
         <div class="sidebar-item"><img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/plus.png" class="sidebar-icon-img" alt="Create"></div>
         <div class="sidebar-item"><img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/profile.png" class="sidebar-icon-img" style="border-radius: 50%;" alt="Profile"></div>
         
         <div style="margin-top: auto; margin-bottom: 20px;">
+            <div class="sidebar-item" id="dark-mode-toggle">
+                <img src="./dark_mode.png" class="sidebar-icon-img" alt="Dark Mode">
+            </div>
+            
             <div class="sidebar-item"><img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/tabs.png" class="sidebar-icon-img" alt="More"></div>
             <div class="sidebar-item"><img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/meta.png" style="width: 30px; opacity: 0.7;" alt="Meta"></div>
         </div>
@@ -76,11 +78,11 @@
             
             <div class="post-action-bar">
                 <div class="d-flex align-items-center">
-                    <div class="post-action-icon"><img src="like.png" class="like-btn-img" alt="Like"></div>
+                    <div class="post-action-icon"><img src="./like.png" class="like-btn-img" alt="Like"></div>
                     <div class="post-action-number like-count-txt" style="margin-left:12px;">186</div>
                     
-                    <div class="post-action-icon"><img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/comments.png" alt="Comment"></div>
-                    <div class="post-action-number" style="margin-left:12px;">186</div>
+                    <div class="post-action-icon"><img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/comments.png" class="comment-btn-icon" alt="Comment"></div>
+                    <div class="post-action-number comment-count-txt" style="margin-left:12px;">186</div>
                     
                     <div class="post-action-icon"><img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/repost.png" alt="Repost"></div>
                     <div class="post-action-number" style="margin-left:12px;">37</div>
@@ -93,7 +95,15 @@
             <div class="px-1">
                 <p class="mb-1 post-text"><strong><span class="like-count-display">186</span> לייקים</strong></p>
                 <p class="mb-1 post-text post-description"><strong>sport_5</strong> דני אבדיה בשיאו! עוד שישי של חגיגה לאומית בקבוצה של וושינגטון 😍</p>
-                <p class="text-muted mb-0 post-text-link">צפה בכל 186 התגובות</p>
+                
+                <p class="text-muted mb-1 post-text-link toggle-comments-btn">הצג את כל <span class="comment-count-display">186</span> התגובות</p>
+                
+                <div class="comments-list" style="display: none;"></div>
+                
+                <div class="add-comment-section" style="display: none;">
+                    <input type="text" class="comment-input" placeholder="הוסף/י תגובה...">
+                    <button class="post-comment-btn" disabled>שלח</button>
+                </div>
             </div>
         </div>
 
@@ -107,11 +117,11 @@
             <img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/eran.jpg" class="post-main-img" alt="Eran Zahavi">
             <div class="post-action-bar">
                 <div class="d-flex align-items-center">
-                    <div class="post-action-icon"><img src="like.png" class="like-btn-img" alt="Like"></div>
+                    <div class="post-action-icon"><img src="./like.png" class="like-btn-img" alt="Like"></div>
                     <div class="post-action-number like-count-txt" style="margin-left:12px;">1,240</div>
                     
-                    <div class="post-action-icon"><img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/comments.png" alt="Comment"></div>
-                    <div class="post-action-number" style="margin-left:12px;">389</div>
+                    <div class="post-action-icon"><img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/comments.png" class="comment-btn-icon" alt="Comment"></div>
+                    <div class="post-action-number comment-count-txt" style="margin-left:12px;">389</div>
                     
                     <div class="post-action-icon"><img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/repost.png" alt="Repost"></div>
                     <div class="post-action-number" style="margin-left:12px;">204</div>
@@ -123,6 +133,15 @@
             <div class="px-1">
                 <p class="mb-1 post-text"><strong><span class="like-count-display">1,240</span> לייקים</strong></p>
                 <p class="mb-1 post-text post-description"><strong>sport_5</strong> ערן זהבי לא עוצר! כובש שער ניצחון מדהים באצטדיון חולון ⚽️🔥</p>
+
+                <p class="text-muted mb-1 post-text-link toggle-comments-btn">הצג את כל <span class="comment-count-display">389</span> התגובות</p>
+                
+                <div class="comments-list" style="display: none;"></div>
+                
+                <div class="add-comment-section" style="display: none;">
+                    <input type="text" class="comment-input" placeholder="הוסף/י תגובה...">
+                    <button class="post-comment-btn" disabled>שלח</button>
+                </div>
             </div>
         </div>
 
@@ -136,11 +155,11 @@
             <img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/the_amazing_race.jpg" class="post-main-img" alt="The Amazing Race">
             <div class="post-action-bar">
                 <div class="d-flex align-items-center">
-                    <div class="post-action-icon"><img src="like.png" class="like-btn-img" alt="Like"></div>
+                    <div class="post-action-icon"><img src="./like.png" class="like-btn-img" alt="Like"></div>
                     <div class="post-action-number like-count-txt" style="margin-left:12px;">16,800</div>
                     
-                    <div class="post-action-icon"><img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/comments.png" alt="Comment"></div>
-                    <div class="post-action-number" style="margin-left:12px;">724</div>
+                    <div class="post-action-icon"><img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/comments.png" class="comment-btn-icon" alt="Comment"></div>
+                    <div class="post-action-number comment-count-txt" style="margin-left:12px;">724</div>
                     
                     <div class="post-action-icon"><img src="https://raw.githubusercontent.com/liorcohen21560-cyber/targil-1-/main/repost.png" alt="Repost"></div>
                     <div class="post-action-number" style="margin-left:12px;">51</div>
@@ -152,6 +171,15 @@
             <div class="px-1">
                 <p class="mb-1 post-text"><strong><span class="like-count-display">16,800</span> לייקים</strong></p>
                 <p class="mb-1 post-text post-description"><strong>the.amazing.race.israel</strong> קבלו אותם! טום ואלמוג, המנצחים של המירוץ למיליון 2026, הגיעו הבוקר למשרדי קשת 12 לקבל את הפרס 🌏</p>
+                
+                <p class="text-muted mb-1 post-text-link toggle-comments-btn">הצג את כל <span class="comment-count-display">724</span> התגובות</p>
+                
+                <div class="comments-list" style="display: none;"></div>
+                
+                <div class="add-comment-section" style="display: none;">
+                    <input type="text" class="comment-input" placeholder="הוסף/י תגובה...">
+                    <button class="post-comment-btn" disabled>שלח</button>
+                </div>
             </div>
         </div>
 
@@ -235,6 +263,6 @@
         </div>
     </div>
 
-    <script src="script1.js"></script>
+    <script src="script1.js?v=2"></script>
 </body>
 </html>

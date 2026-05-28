@@ -215,12 +215,62 @@ body {
     text-decoration: none;
 }
 
-.error-message {
-    color: #ed4956;
-    font-size: 13px;
-    text-align: right;
-    margin-top: -10px;
-    margin-bottom: 15px;
-    display: none; /* Hidden until triggered by JS */
-    font-weight: 500;
+/* General page reset */
+body { 
+    background-color: #ffffff; 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+    margin: 0; 
 }
+
+/* RIGHT SIDEBAR */
+.sidebar {
+    width: 100px; height: 100vh; position: fixed; right: 0; top: 0;
+    border-left: 1px solid #dbdbdb; display: flex; flex-direction: column;
+    align-items: center; padding-top: 25px; z-index: 1000; background-color: #ffffff;
+}
+.sidebar-item { position: relative; margin-bottom: 30px; cursor: pointer; }
+.sidebar-icon-img { width: 38px; height: auto; object-fit: contain; }
+
+/* MAIN CONTENT AREA */
+.main-content { margin-right: 100px; margin-left: 380px; padding-top: 30px; display: flex; flex-direction: column; align-items: center; }
+
+/* STORIES */
+.stories-container { width: 100%; max-width: 630px; display: flex; gap: 18px; padding: 10px 0; overflow-x: auto; margin-bottom: 40px; }
+.story-ring { width: 68px; height: 68px; border-radius: 50%; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); padding: 2px; display: flex; justify-content: center; align-items: center; }
+.story-img-base { width: 62px; height: 62px; border-radius: 50%; border: 2px solid white; object-fit: cover; }
+.story-username { font-size: 11px; margin-top: 5px; }
+
+/* POST CARD STYLING */
+.post-card { width: 100%; max-width: 470px; margin-bottom: 60px; }
+.post-header { display: flex; align-items: center; padding: 12px 0; }
+.post-user-avatar { width: 34px; height: 34px; border-radius: 50%; margin-left: 10px; object-fit: cover; }
+.post-main-img { width: 100%; height: auto; border: 1px solid #dbdbdb; border-radius: 4px; }
+.post-text { font-size: 14px; }
+.post-action-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 0 6px; }
+.post-action-icon { cursor: pointer; }
+.post-action-icon img { width: 24px; height: auto; display: block; }
+.post-action-number { font-size: 14px; font-weight: 600; margin-left: 6px; }
+
+.toggle-comments-btn { cursor: pointer; display: inline-block; font-size: 14px; color: #737373; }
+.comments-list { margin-top: 5px; margin-bottom: 10px; max-height: 150px; overflow-y: auto; }
+.single-comment { font-size: 14px; margin-bottom: 6px; }
+.add-comment-section { display: flex; align-items: center; border-top: 1px solid #efefef; padding-top: 10px; margin-top: 10px; }
+.comment-input { flex-grow: 1; border: none; outline: none; font-size: 14px; background: transparent; }
+.post-comment-btn { background: transparent; border: none; color: #0095f6; font-weight: 600; cursor: pointer; }
+.post-comment-btn:disabled { color: #b3dffc; }
+
+/* MODAL & FOOTER */
+.search-modal-overlay { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); align-items: center; justify-content: center; }
+.search-modal-content { background-color: #ffffff; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; }
+.search-input-box { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #dbdbdb; }
+.footer { height: 100px; width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #ffffff; color: #737373; font-size: 12px; }
+
+/* ==========================================
+   DARK MODE STYLES 
+   ========================================== */
+body.dark-mode { background-color: #000000 !important; color: #ffffff !important; }
+body.dark-mode .sidebar, body.dark-mode .search-modal-content { background-color: #000000 !important; color: #ffffff !important; border-color: #262626 !important; }
+body.dark-mode .sidebar { border-left: 1px solid #262626 !important; }
+body.dark-mode .post-main-img { border-color: #262626 !important; }
+body.dark-mode .sidebar-icon-img, body.dark-mode .post-action-icon img { filter: invert(1) !important; }
+body.dark-mode .post-action-icon img[src="./red_like.png"] { filter: none !important; }
