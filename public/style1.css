@@ -276,3 +276,12 @@ body, html {
     text-decoration: underline;
 }
 
+.error-message { 
+    color: #cc2366; 
+    font-size: 14px; 
+    margin-top: 10px; 
+    display: none; 
+    text-align: center;
+    direction: ltr;
+}
+
