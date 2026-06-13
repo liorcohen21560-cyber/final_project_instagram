@@ -9,6 +9,7 @@
  * Part 8: Filter by Post Type (All, Images, Videos, Text)
  * Part 9: Delete Post (Remove from DOM)
  * Part 10: Share Post (Simulate share action with alert)
+ * Part 11: Create Existing Posts Dynamically (Use the postObjects array to generate posts on page load)
  */
 document.addEventListener("DOMContentLoaded", function () {
     
@@ -18,8 +19,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // ==========================================
     // 1. LIKE BUTTON LOGIC
     // ==========================================
-    const ORIGINAL_LIKE_SRC = "./like.png";
-    const RED_LIKE_SRC = "./red_like.png";
+    const ORIGINAL_LIKE_SRC = "images/like.png";
+    const RED_LIKE_SRC = "images/red_like.png";
 
     function initializePost(post) {
         const likeBtnImg = post.querySelector('.like-btn-img');
@@ -100,6 +101,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         function addComment() {
+            userTypingPopup.style.display = 'none';
             const commentText = commentInput.value.trim();
             if (commentText === '') return;
 
@@ -280,57 +282,43 @@ document.addEventListener("DOMContentLoaded", function () {
                 uploadError.style.display = "none";
             }
 
-            const clone = templatePost.content.cloneNode(true);
-            const mediaContainer = clone.querySelector('[data-content]');
-            let mediaElement;
+            let postType = 'text'; // default fallback
 
             if (mediaUpload.files.length === 0) {
-                mediaElement = document.createElement('div');
-                mediaElement.textContent = postText.value;
-                mediaElement.className = "text-post";
+                postType = 'text';
             }
             else {
                 const file = mediaUpload.files[0];
 
                 if (file.type.startsWith('image/')) {
-                    mediaElement = document.createElement('img');
-                    mediaElement.src = URL.createObjectURL(mediaUpload.files[0]);
-                    mediaElement.classList = "post-main-img";
+                    postType = 'image';
                 }
                 else if (file.type.startsWith('video/')) {
-                    mediaElement = document.createElement('video');
-                    mediaElement.src = URL.createObjectURL(file);
-                    mediaElement.controls = true; // מוסיף כפתורי Play, Pause ועוצמת שמע
-                    mediaElement.className = "video-post";
+                    postType = 'video';
                 }
             }
 
-            if (mediaElement && mediaContainer) {
-                mediaContainer.appendChild(mediaElement);
-            }
+            const newPostData = {
+                post_type: postType,
+                post_content: mediaUpload.files.length > 0 ? URL.createObjectURL(mediaUpload.files[0]) : postText.value,  //the file if uploaded, otherwise the text supplied by the user
+                caption: caption.value.trim()
+            };
 
-            if (caption.value.trim() !== '') {
-                const captionElement = clone.querySelector('[data-caption]');
-                if (captionElement) {
-                    const strongEl = captionElement.querySelector('strong');
-                    if (strongEl) {
-                        strongEl.style.display = 'inline'; 
+            fetch('/api/posts', {method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json' // Tells the server we are sending JSON data
+                },
+                body: JSON.stringify(newPostData) // Convert the JS object to a string for transportation
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        const newIndex = newPostData.length - 1;
+                        BuildPost(result.addedPost, newIndex, true);
+                        document.getElementById('newPostMessage').style.display = 'block';
+                        newPostModal.style.display = 'none';
                     }
-
-                    captionElement.style.display = 'block'; 
-                    captionElement.append(' ' + caption.value.trim());
-                }
-            }
-
-            initializePost(clone); // Initialize the new post's functionality so it can be liked, commented on, etc.
-            postContainer.prepend(clone);
-
-            postText.value = '';
-            caption.value = '';
-            mediaUpload.value = '';
-            newPostModal.style.display = 'none';
-            
-            document.getElementById('newPostMessage').style.display = 'block';
+                })
         });
     }
 
@@ -374,7 +362,20 @@ document.addEventListener("DOMContentLoaded", function () {
         if (deleteBtn) {
             const postCard = deleteBtn.closest('.post-card');
             if (postCard) {
-                postCard.remove();
+                const postIndex = postCard.getAttribute('post-index');
+                fetch('/api/posts/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ index: parseInt(postIndex) })
+                })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        // remove the post visually if the server successfully deleted it
+                        postCard.remove();
+                    }
+                })
+                .catch(err => console.error("Error deleting post:", err));
             }
         }
     });
@@ -409,5 +410,84 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
+    // ===========================================
+    // 11. CREATE EXISTING POSTS DINAMICALLY LOGIC
+    // ===========================================
+    fetch('/api/posts')
+    .then(response => response.json())
+    .then(postsArray => {postsArray.forEach((postData, index) => BuildPost(postData, index, false));}) // Call BuildPost for each post object in the array
+    .catch(err => console.error("Failed to load posts:", err));
+
+    function BuildPost(postData, index, isNew = false) {
+        const templatePost = document.getElementById('templatePost');
+        const clone = templatePost.content.cloneNode(true);
+        clone.querySelector('.post-card').setAttribute('post-index', index); // Store the index for reference (if needed for future features like editing/deleting specific posts)
+
+        if (!isNew) {
+            clone.querySelector('#newPostTag').style.display = 'none'; // Hide the new post tag for dynamically loaded existing posts
+        }
+
+        const userImage = clone.querySelector('[user-profile-image]');
+        userImage.src = postData.user_profile_image;
+
+        const usernameElement = clone.querySelector('[username]');
+        usernameElement.textContent = postData.username;
+
+        const uploadTimeElement = clone.querySelector('[upload-time]');
+        uploadTimeElement.textContent = postData.upload_time;
+
+        const mediaContainer = clone.querySelector('[post-content]');
+        let mediaElement;
+        if (postData.post_type === 'text') {
+            mediaElement = document.createElement('div');
+            mediaElement.textContent = postData.post_content;
+            mediaElement.className = "text-post";
+        }
+        else if (postData.post_type === 'image') {
+            mediaElement = document.createElement('img');
+            mediaElement.src = postData.post_content;
+            mediaElement.classList = "post-main-img";
+        }
+        else {
+            mediaElement = document.createElement('video');
+            mediaElement.src = postData.post_content;
+            mediaElement.controls = true; // מוסיף כפתורי Play, Pause ועוצמת שמע
+            mediaElement.className = "video-post";
+        }
+
+        mediaContainer.appendChild(mediaElement);
+
+        const captionElement = clone.querySelector('[caption]');
+        const strongEl = captionElement.querySelector('strong');
+        strongEl.style.display = 'inline';
+
+        captionElement.style.display = 'block';
+        if (postData.caption) {
+            captionElement.append(' ' + postData.caption);
+        }
+
+        const likeCount = clone.querySelector('[like-count]');
+        likeCount.textContent = postData.like_count;
+
+        const likeCountDisplay = clone.querySelector('[like-count-display]');
+        likeCountDisplay.textContent = postData.like_count;
+
+        const commentCount = clone.querySelector('[comment-count]');
+        commentCount.textContent = postData.comment_count;
+
+        const commentCountDisplay = clone.querySelector('[comment-count-display]');
+        commentCountDisplay.textContent = postData.comment_count;
+
+        const repostCount = clone.querySelector('[repost-count]');
+        repostCount.textContent = postData.repost_count;
+
+        initializePost(clone); // Initialize the new post's functionality so it can be liked, commented on, etc.
+        postContainer.prepend(clone);
+
+        // Clear the form fields after adding the post
+        postText.value = '';
+        caption.value = '';
+        mediaUpload.value = '';
+    };
 
 });
