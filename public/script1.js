@@ -298,23 +298,24 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
 
-            const newPostData = {
-                post_type: postType,
-                post_content: mediaUpload.files.length > 0 ? URL.createObjectURL(mediaUpload.files[0]) : postText.value,  //the file if uploaded, otherwise the text supplied by the user
-                caption: caption.value.trim()
-            };
+            const formData = new FormData();
+            formData.append('post_type', postType);
+            formData.append('caption', caption.value.trim());
+
+            if (mediaUpload.files.length > 0) {
+                // 'mediaFile' must match upload.single('mediaFile') in the backend route
+                formData.append('mediaFile', mediaUpload.files[0]); 
+            } else {
+                formData.append('post_content', postText.value);
+            }
 
             fetch('/api/posts', {method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json' // Tells the server we are sending JSON data
-                },
-                body: JSON.stringify(newPostData) // Convert the JS object to a string for transportation
+                body: formData // Send the FormData object directly
                 })
                 .then(response => response.json())
                 .then(result => {
                     if (result.success) {
-                        const newIndex = newPostData.length - 1;
-                        BuildPost(result.addedPost, newIndex, true);
+                        BuildPost(result.addedPost, true);
                         document.getElementById('newPostMessage').style.display = 'block';
                         newPostModal.style.display = 'none';
                     }
@@ -362,11 +363,12 @@ document.addEventListener("DOMContentLoaded", function () {
         if (deleteBtn) {
             const postCard = deleteBtn.closest('.post-card');
             if (postCard) {
-                const postIndex = postCard.getAttribute('post-index');
+                // Get the MongoDB _id from the data attribute of the post card
+                const postId = postCard.getAttribute('data-post-id');
                 fetch('/api/posts/delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ index: parseInt(postIndex) })
+                    body: JSON.stringify({ postId: postId })
                 })
                 .then(res => res.json())
                 .then(result => {
@@ -415,13 +417,13 @@ document.addEventListener("DOMContentLoaded", function () {
     // ===========================================
     fetch('/api/posts')
     .then(response => response.json())
-    .then(postsArray => {postsArray.forEach((postData, index) => BuildPost(postData, index, false));}) // Call BuildPost for each post object in the array
+    .then(postsArray => {postsArray.forEach((postData) => BuildPost(postData, false));}) // Call BuildPost for each post object in the array
     .catch(err => console.error("Failed to load posts:", err));
 
-    function BuildPost(postData, index, isNew = false) {
+    function BuildPost(postData, isNew = false) {
         const templatePost = document.getElementById('templatePost');
         const clone = templatePost.content.cloneNode(true);
-        clone.querySelector('.post-card').setAttribute('post-index', index); // Store the index for reference (if needed for future features like editing/deleting specific posts)
+        clone.querySelector('.post-card').setAttribute('data-post-id', postData._id); // Store the MongoDB _id for reference
 
         if (!isNew) {
             clone.querySelector('#newPostTag').style.display = 'none'; // Hide the new post tag for dynamically loaded existing posts
@@ -482,7 +484,11 @@ document.addEventListener("DOMContentLoaded", function () {
         repostCount.textContent = postData.repost_count;
 
         initializePost(clone); // Initialize the new post's functionality so it can be liked, commented on, etc.
-        postContainer.prepend(clone);
+        if (isNew) {
+            postContainer.prepend(clone); // Add new posts to the top of the feed
+        } else {
+            postContainer.append(clone); // Add existing posts to the bottom of the feed
+        }
 
         // Clear the form fields after adding the post
         postText.value = '';
