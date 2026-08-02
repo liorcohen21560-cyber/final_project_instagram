@@ -12,55 +12,55 @@
 
     <div class="sidebar">
         <div class="sidebar-item mt-2 mb-5">
-            <img src="images/insta.png" style="width: 40px;" class="sidebar-icon-img" alt="Logo">
+            <img src="media/icons/insta.png" style="width: 40px;" class="sidebar-icon-img" alt="Logo">
         </div>
-        <div class="sidebar-item"><img src="images/home.png" class="sidebar-icon-img" alt="Home"></div>
-        <div class="sidebar-item"><img src="images/reels.png" class="sidebar-icon-img" alt="Reels"></div>
-        <div class="sidebar-item"><img src="images/messages.png" class="sidebar-icon-img" alt="Messages"></div>
-        <div class="sidebar-item" id="search-btn"><img src="images/search.png" class="sidebar-icon-img" alt="Search"></div>
-        <div class="sidebar-item"><img src="images/explore.png" class="sidebar-icon-img" alt="Explore"></div>
-        <div class="sidebar-item"><img src="images/like.png" class="sidebar-icon-img" alt="Activity"></div>
-        <div class="sidebar-item" id="create-post-btn"><img src="images/plus.png" class="sidebar-icon-img" alt="Create"></div>
-        <div class="sidebar-item"><img src="images/profile.png" class="sidebar-icon-img" style="border-radius: 50%;" alt="Profile"></div>
+        <div class="sidebar-item"><img src="media/icons/home.png" class="sidebar-icon-img" alt="Home"></div>
+        <div class="sidebar-item"><img src="media/icons/reels.png" class="sidebar-icon-img" alt="Reels"></div>
+        <div class="sidebar-item"><img src="media/icons/messages.png" class="sidebar-icon-img" alt="Messages"></div>
+        <div class="sidebar-item" id="search-btn"><img src="media/icons/search.png" class="sidebar-icon-img" alt="Search"></div>
+        <div class="sidebar-item"><img src="media/icons/explore.png" class="sidebar-icon-img" alt="Explore"></div>
+        <div class="sidebar-item"><img src="media/icons/like.png" class="sidebar-icon-img" alt="Activity"></div>
+        <div class="sidebar-item" id="create-post-btn"><img src="media/icons/plus.png" class="sidebar-icon-img" alt="Create"></div>
+        <div class="sidebar-item"><img src="media/profile-pictures/profile.png" class="sidebar-icon-img" style="border-radius: 50%;" alt="Profile"></div>
         
         <div style="margin-top: auto; margin-bottom: 20px;">
             <div class="sidebar-item" id="dark-mode-toggle">
-                <img src="./images/dark_mode.png" class="sidebar-icon-img" alt="Dark Mode">
+                <img src="media/icons/dark_mode.png" class="sidebar-icon-img" alt="Dark Mode">
             </div>
             
-            <div class="sidebar-item"><img src="images/tabs.png" class="sidebar-icon-img" alt="More"></div>
-            <div class="sidebar-item"><img src="images/meta.png" style="width: 30px; opacity: 0.7;" alt="Meta"></div>
+            <div class="sidebar-item"><img src="media/icons/tabs.png" class="sidebar-icon-img" alt="More"></div>
+            <div class="sidebar-item"><img src="media/icons/meta.png" style="width: 30px; opacity: 0.7;" alt="Meta"></div>
         </div>
     </div>
 
     <div class="main-content">
         <div class="stories-container">
             <div class="story-item text-center">
-                <div class="story-ring"><img src="images/sport%205.png" class="story-img-base" alt="Sport 5"></div>
+                <div class="story-ring"><img src="media/profile-pictures/sport%205.png" class="story-img-base" alt="Sport 5"></div>
                 <div class="story-username">sport_5</div>
             </div>
             <div class="story-item text-center">
-                <div class="story-ring"><img src="images/eran.jpg" class="story-img-base" alt="Eran Zahavi"></div>
+                <div class="story-ring"><img src="media/profile-pictures/eran.jpg" class="story-img-base" alt="Eran Zahavi"></div>
                 <div class="story-username">eran_zahavi</div>
             </div>
             <div class="story-item text-center">
-                <div class="story-ring"><img src="images/the_amazing_race_profile.jpg" class="story-img-base" alt="the.amazing.race.israel"></div>
+                <div class="story-ring"><img src="media/profile-pictures/the_amazing_race_profile.jpg" class="story-img-base" alt="the.amazing.race.israel"></div>
                 <div class="story-username">the.amazing...</div>
             </div>
             <div class="story-item text-center">
-                <div class="story-ring"><img src="images/liel.jpg" class="story-img-base" alt="liel_eli"></div>
+                <div class="story-ring"><img src="media/profile-pictures/liel.jpg" class="story-img-base" alt="liel_eli"></div>
                 <div class="story-username">liel_eli</div>
             </div>
             <div class="story-item text-center">
-                <div class="story-ring"><img src="images/omer.jpg" class="story-img-base" alt="omer_adam"></div>
+                <div class="story-ring"><img src="media/profile-pictures/omer.jpg" class="story-img-base" alt="omer_adam"></div>
                 <div class="story-username">omer_adam</div>
             </div>
             <div class="story-item text-center">
-                <div class="story-ring"><img src="images/holon.jpg" class="story-img-base" alt="hapoel.holon"></div>
+                <div class="story-ring"><img src="media/profile-pictures/holon.jpg" class="story-img-base" alt="hapoel.holon"></div>
                 <div class="story-username">hapoel.holon</div>
             </div>
             <div class="story-item text-center">
-                <div class="story-ring"><img src="images/macabi.png" class="story-img-base" alt="macabi_tel_aviv"></div>
+                <div class="story-ring"><img src="media/profile-pictures/macabi.png" class="story-img-base" alt="macabi_tel_aviv"></div>
                 <div class="story-username">macabi_tel_aviv</div>
             </div>
         </div>
@@ -73,32 +73,32 @@
         </div>
 
         <template id="templatePost">
-            <div class="post-card">
+            <div class="post-card" data-post-id="">
                 <div class="post-header">
-                    <img user-profile-image src="images/profile.png" class="post-user-avatar" alt="liorcohen299">
+                    <img user-profile-image src="media/profile-pictures/profile.png" class="post-user-avatar" alt="liorcohen299">
                     <strong username class="me-2">liorcohen299</strong>
                     <span upload-time class="text-muted small">• עכשיו</span>
                     <span id="newPostTag" class="small new-post-tag">#חדש!</span>
-                    <div class="post-action-icon-top delete-icon"><img src="images/delete.jpg" class="delete-btn-icon" alt="Delete"></div>
-                    <div class="post-action-icon-top"><img src="images/three dots.png" alt="Three Dots"></div>
+                    <div class="post-action-icon-top delete-icon"><img src="media/icons/delete.jpg" class="delete-btn-icon" alt="Delete"></div>
+                    <div class="post-action-icon-top"><img src="media/icons/three dots.png" alt="Three Dots"></div>
                 </div>
             
                 <div post-content></div>
             
                 <div class="post-action-bar">
                     <div class="d-flex align-items-center">
-                        <div class="post-action-icon"><img src="images/like.png" class="like-btn-img" alt="Like"></div>
+                        <div class="post-action-icon"><img src="media/icons/like.png" class="like-btn-img" alt="Like"></div>
                         <div like-count class="post-action-number like-count-txt" style="margin-left:12px;">0</div>
                     
-                        <div class="post-action-icon"><img src="images/comments.png" class="comment-btn-icon" alt="Comment"></div>
+                        <div class="post-action-icon"><img src="media/icons/comments.png" class="comment-btn-icon" alt="Comment"></div>
                         <div comment-count class="post-action-number comment-count-txt" style="margin-left:12px;">0</div>
                     
-                        <div class="post-action-icon"><img src="images/repost.png" alt="Repost"></div>
+                        <div class="post-action-icon"><img src="media/icons/repost.png" alt="Repost"></div>
                         <div repost-count class="post-action-number" style="margin-left:12px;">0</div>
                     
-                        <div class="post-action-icon"><img src="images/send.png" class="send-btn-icon" alt="Send"></div>
+                        <div class="post-action-icon"><img src="media/icons/send.png" class="send-btn-icon" alt="Send"></div>
                     </div>
-                    <div class="post-action-icon me-0"><img src="images/save.png" alt="Save"></div>
+                    <div class="post-action-icon me-0"><img src="media/icons/save.png" alt="Save"></div>
                 </div>
 
                 <div class="px-1">
@@ -119,7 +119,7 @@
         </template>
 
         <div class="all-updated">
-            <div class="all-updated-icon"><img src="images/all updated checkmark.png" alt="All Updated"></div>
+            <div class="all-updated-icon"><img src="media/icons/all updated checkmark.png" alt="All Updated"></div>
             <div class="all-updated-text-header">זה הכל לבינתיים.</div>
             <div class="all-updated-text">ראית את כל הפוסטים מ-3 הימים האחרונים.</div>
         </div>
@@ -143,7 +143,7 @@
     <div class="suggestions-side">
         <div class="user-row">
             <div class="d-flex align-items-center">
-                <img src="images/profile.png" class="suggestion-profile-img" alt="User">
+                <img src="media/profile-pictures/profile.png" class="suggestion-profile-img" alt="User">
                 <div>
                     <div class="fw-bold small">liorcohen299</div>
                     <div class="text-muted small">Lior Cohen</div>
@@ -157,7 +157,7 @@
         </div>
         <div class="user-row">
             <div class="d-flex align-items-center">
-                <img src="images/sport 5.png" class="suggested-profile-img" alt="Sport 5">
+                <img src="media/profile-pictures/sport 5.png" class="suggested-profile-img" alt="Sport 5">
                 <div>
                     <div class="fw-bold small">sport_5</div>
                     <div class="text-muted" style="font-size: 11px;">מומלץ עבורך</div>
@@ -167,7 +167,7 @@
         </div>
         <div class="user-row">
             <div class="d-flex align-items-center">
-                <img src="images/deni_profile.jpg" class="suggested-profile-img" alt="deniavdia8">
+                <img src="media/profile-pictures/deni_profile.jpg" class="suggested-profile-img" alt="deniavdia8">
                 <div>
                     <div class="fw-bold small">deniavdia8</div>
                     <div class="text-muted" style="font-size: 11px;">מומלץ עבורך</div>
@@ -236,19 +236,19 @@
             <input type="text" id="searchUserToShare" placeholder="חפש/י">
             <div id="sendUsersContainer" class="send-users-container">
                 <div class="story-item text-center">
-                    <div class="send-user-ring"><img src="images/sport 5.png" class="story-img-base" alt="Sport 5"></div>
+                    <div class="send-user-ring"><img src="media/profile-pictures/sport 5.png" class="story-img-base" alt="Sport 5"></div>
                     <div class="story-username">sport_5</div>
                 </div>
                 <div class="story-item text-center">
-                    <div class="send-user-ring"><img src="images/eran.jpg" class="story-img-base" alt="Eran Zahavi"></div>
+                    <div class="send-user-ring"><img src="media/profile-pictures/eran.jpg" class="story-img-base" alt="Eran Zahavi"></div>
                     <div class="story-username">eran_zahavi</div>
                 </div>
                 <div class="story-item text-center">
-                    <div class="send-user-ring"><img src="images/liel.jpg" class="story-img-base" alt="liel_eli"></div>
+                    <div class="send-user-ring"><img src="media/profile-pictures/liel.jpg" class="story-img-base" alt="liel_eli"></div>
                     <div class="story-username">liel_eli</div>
                 </div>
                 <div class="story-item text-center">
-                    <div class="send-user-ring"><img src="images/omer.jpg" class="story-img-base" alt="omer_adam"></div>
+                    <div class="send-user-ring"><img src="media/profile-pictures/omer.jpg" class="story-img-base" alt="omer_adam"></div>
                     <div class="story-username">omer_adam</div>
                 </div>
             </div>
