@@ -99,3 +99,24 @@ body.dark-mode .post-action-icon img[src="./red_like.png"] { filter: none !impor
 body.dark-mode input { background-color: #262626 !important; color: #ffffff !important; border-color: #262626 !important; }
 body.dark-mode .filter-wrapper { background-color: #262626 !important; color: #ffffff !important; border-color: #262626 !important; }
 body.dark-mode .footer { background-color: #000000 !important; color: #737373 !important; }
+
+/* ==========================================
+   GIF SEARCH STYLES 
+   ========================================== */
+.gif-comment-btn {
+    background: transparent; border: none; color: #737373; font-weight: 800;
+    cursor: pointer; font-size: 14px; padding: 0 10px; outline: none;
+}
+.gif-comment-btn:hover { color: #000; }
+body.dark-mode .gif-comment-btn:hover { color: #fff; }
+
+.gif-results-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+    max-height: 250px; overflow-y: auto; margin-top: 10px;
+}
+.gif-results-grid img {
+    width: 100%; height: 120px; object-fit: cover; border-radius: 8px; cursor: pointer;
+}
+.comment-gif {
+    max-width: 150px; border-radius: 8px; margin-top: 5px; display: block;
+}

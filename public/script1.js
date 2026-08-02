@@ -59,11 +59,36 @@ document.addEventListener("DOMContentLoaded", function () {
         const toggleCommentsBtn = post.querySelector('.toggle-comments-btn'); 
         const commentsList = post.querySelector('.comments-list');
         const addCommentSection = post.querySelector('.add-comment-section');
+
+        
+       
+      
+       // תופסים את כפתור ה-GIF שכבר קיים ב-HTML
+        const gifBtn = post.querySelector('.gif-comment-btn');
+        if (gifBtn) {
+            gifBtn.addEventListener('click', function(event) {
+                // תופסים את הפוסט האמיתי שעל המסך ישירות מתוך אירוע הלחיצה
+                const livePostCard = event.target.closest('.post-card');
+                
+                if (!livePostCard) {
+                    alert("שגיאה: לא הצלחתי לזהות את הפוסט מהמסך.");
+                    return;
+                }
+                
+                window.currentPostForGif = livePostCard; 
+                document.getElementById('gifModal').style.display = 'flex';
+                document.getElementById('gifSearchInput').focus();
+            });
+        }
+        // --------------------------------------------------
         const userTypingPopup = post.querySelector('.user-typing-popup');
         const commentInput = post.querySelector('.comment-input');
         const postCommentBtn = post.querySelector('.post-comment-btn');
         const commentCountIconTxt = post.querySelector('.comment-count-txt');
         const commentCountDisplayTxt = post.querySelector('.comment-count-display');
+
+
+        
 
         if (!toggleCommentsBtn || !commentsList || !commentInput || !postCommentBtn) return;
 
@@ -496,4 +521,102 @@ document.addEventListener("DOMContentLoaded", function () {
         mediaUpload.value = '';
     };
 
+
+
+
+    // ==========================================
+    // 12. GIF SEARCH LOGIC (API INTEGRATION)
+    // ==========================================
+    const gifModal = document.getElementById('gifModal');
+    const closeGifModal = document.getElementById('closeGifModal');
+    const gifSearchInput = document.getElementById('gifSearchInput');
+    const searchGifBtn = document.getElementById('searchGifBtn');
+    const gifResultsContainer = document.getElementById('gifResultsContainer');
+    
+    if (closeGifModal) closeGifModal.addEventListener('click', () => gifModal.style.display = 'none');
+    window.addEventListener('click', (e) => { if(e.target === gifModal) gifModal.style.display = 'none'; });
+
+    async function fetchGifs() {
+        const query = gifSearchInput.value.trim() || 'trending';
+        gifResultsContainer.innerHTML = '<p>מחפש...</p>';
+        
+        try {
+            const response = await fetch(`/api/gifs?q=${query}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                gifResultsContainer.innerHTML = ''; 
+                data.gifs.forEach(gifUrl => {
+                    const img = document.createElement('img');
+                    img.src = gifUrl;
+                    img.addEventListener('click', () => addGifAsComment(gifUrl));
+                    gifResultsContainer.appendChild(img);
+                });
+            } else {
+                gifResultsContainer.innerHTML = '<p>לא נמצאו תוצאות.</p>';
+            }
+        } catch (error) {
+            gifResultsContainer.innerHTML = '<p>שגיאה בתקשורת מול השרת.</p>';
+        }
+    }
+
+  if(searchGifBtn) {
+        searchGifBtn.addEventListener('click', (e) => {
+            e.preventDefault(); // מונע ריענון של העמוד בלחיצה
+            fetchGifs();
+        });
+    }
+    
+    if(gifSearchInput) {
+        gifSearchInput.addEventListener('keydown', (e) => {
+            if(e.key === 'Enter') {
+                e.preventDefault(); 
+                fetchGifs();
+            }
+        });
+    }
+
+   function addGifAsComment(gifUrl) {
+        if (!window.currentPostForGif) {
+            alert("שגיאה: לא זוהה הפוסט אליו יש להוסיף את הגיפ.");
+            return;
+        }
+        
+        const currentPost = window.currentPostForGif;
+        
+        // עכשיו בטוח נמצא את אזור התגובות בתוך הפוסט האמיתי
+        const commentsList = currentPost.querySelector('.comments-list');
+        const commentCountIconTxt = currentPost.querySelector('.comment-count-txt');
+        const toggleCommentsBtn = currentPost.querySelector('.toggle-comments-btn');
+        
+        if (!commentsList) {
+            console.error("הפוסט שזוהה:", currentPost);
+            alert("שגיאה: לא נמצא אזור התגובות בפוסט הזה.");
+            return;
+        }
+
+        // יצירת התגובה עם התמונה
+        const newComment = document.createElement('div');
+        newComment.classList.add('single-comment');
+        newComment.innerHTML = `<strong>liorcohen299</strong> <br> <img src="${gifUrl}" class="comment-gif" style="max-width: 150px; border-radius: 8px; margin-top: 5px;">`;
+        
+        // הוספה למסך
+        commentsList.appendChild(newComment);
+        commentsList.style.display = 'block'; 
+        
+        // עדכון המספרים בטקסט במידה וקיימים
+        if (commentCountIconTxt && toggleCommentsBtn) {
+            let currentCommentCount = parseInt(commentCountIconTxt.textContent.replace(/,/g, '')) || 0;
+            currentCommentCount++;
+            commentCountIconTxt.textContent = currentCommentCount.toLocaleString('en-US');
+            toggleCommentsBtn.innerHTML = `הסתר תגובות`;
+        }
+        
+        // גלילה למטה וניקוי החלון
+        commentsList.scrollTop = commentsList.scrollHeight;
+        document.getElementById('gifModal').style.display = 'none';
+        document.getElementById('gifSearchInput').value = '';
+        document.getElementById('gifResultsContainer').innerHTML = '';
+        window.currentPostForGif = null;
+    }
 });

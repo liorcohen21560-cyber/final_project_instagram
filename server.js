@@ -1,7 +1,8 @@
+require('dotenv').config(); // Load environment variables from .env file
 const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
-require('dotenv').config(); // Load environment variables from .env file
+
 
 const authRoutes = require('./routes/authRoutes');
 const postRoutes = require('./routes/postRoutes');
