@@ -109,8 +109,11 @@
                 
                     <div class="comments-list" style="display: none;"></div>
                 
-                    <div class="user-typing-popup" style="display: none;">liorcohen299 מקליד...</div>
-                    <div class="add-comment-section" style="display: none;">
+                    <div class="user-typing-popup" style="display: none;">liorcohen299 מקליד...
+
+                    </div>
+                   <div class="add-comment-section" style="display: none;">
+                        <button class="gif-comment-btn" title="הוסף גיפ" type="button">GIF</button>
                         <input type="text" class="comment-input" placeholder="הוסף/י תגובה...">
                         <button class="post-comment-btn" disabled>שלח</button>
                     </div>
@@ -254,7 +257,32 @@
             </div>
         </div>
     </div>
+    <div id="gifModal" class="search-modal-overlay modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="close-popup" id="closeGifModal">&times;</span>
+            <h5 class="mb-3 fw-bold">חיפוש גיפים</h5>
+            <div class="d-flex mb-3">
+                <input type="text" id="gifSearchInput" class="search-input-box" placeholder="חפש/י גיפ (למשל: wow)...">
+                <button id="searchGifBtn" class="colorful-btn ms-2 px-3">חפש</button>
+            </div>
+            <div id="gifResultsContainer" class="gif-results-grid"></div>
+        </div>
+    </div>
 
-    <script src="script1.js?v=2"></script>
+
+
+    <!-- חלון קופץ לחיפוש גיפים -->
+    <div id="gifModal" class="search-modal-overlay modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="close-popup" id="closeGifModal">&times;</span>
+            <h5 class="mb-3 fw-bold">חיפוש גיפים</h5>
+            <div class="d-flex mb-3">
+                <input type="text" id="gifSearchInput" class="search-input-box" placeholder="חפש/י גיפ (למשל: wow)...">
+                <button id="searchGifBtn" class="colorful-btn ms-2 px-3">חפש</button>
+            </div>
+            <div id="gifResultsContainer" class="gif-results-grid"></div>
+        </div>
+    </div>
+    <script src="script1.js?v=3"></script>
 </body>
 </html>
