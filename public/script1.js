@@ -4,12 +4,11 @@
  * Part 3: Comments (Add, Count, Toggle display)
  * Part 4: Dark Mode Toggle (POP-UP TEST)
  * Part 5: Back to Top Button (Show on scroll, Smooth scroll)
- * Part 6: Write "The user is typing..." Popup (Show when typing comment, Hide when empty), inside section 3
- * Part 7: Create Post Modal (Image/Video upload, Text caption, Validation)
- * Part 8: Filter by Post Type (All, Images, Videos, Text)
- * Part 9: Delete Post (Remove from DOM)
- * Part 10: Share Post (Simulate share action with alert)
- * Part 11: Create Existing Posts Dynamically (Use the postObjects array to generate posts on page load)
+ * Part 6: Create Post Modal (Image/Video upload, Text caption, Validation)
+ * Part 7: Delete Post (Remove from DOM)
+ * Part 8: Share Post (Simulate share action with alert)
+ * Part 9: Create Existing Posts Dynamically (Use the postObjects array to generate posts on page load)
+ * Part 10: GIF Search Logic (API Integration, Display GIFs, Select and Insert into Comment)
  */
 document.addEventListener("DOMContentLoaded", function () {
     
@@ -287,7 +286,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // ==========================================
-    // 7. CREATE POST BUTTON LOGIC
+    // 6. CREATE POST BUTTON LOGIC
     // ==========================================
     const createPostBtn = document.getElementById('create-post-btn');
     const newPostModal = document.getElementById('newPostModal');
@@ -372,54 +371,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // ==========================================
-    // 8. FILTER BY POST TYPE LOGIC
-    // ==========================================
-    /*const applyFiltersBtn = document.getElementById('applyFiltersBtn');
-
-    if (applyFiltersBtn) {
-        applyFiltersBtn.addEventListener('click', function() {
-            document.getElementById('newPostMessage').style.display = 'none'; // Hide the new post message when filtering
-            
-            // .trim().toLowerCase() is used to ensure that the filter values are compared in a case-insensitive manner and without leading/trailing spaces.
-            const mediaFilterValue = document.getElementById('mediaTypeFilter').value;
-            const usernameFilterValue = document.getElementById('usernameFilter').value.trim().toLowerCase();
-            const captionFilterValue = document.getElementById('captionFilter').value.trim().toLowerCase();
-            
-            const allPosts = document.querySelectorAll('.post-card'); 
-
-            allPosts.forEach(post => {
-                // Media type filtering
-                const hasImage = post.querySelector('.post-main-img');
-                const hasVideo = post.querySelector('.video-post');
-
-                let postType = 'text'; // default fallback
-                if (hasImage) postType = 'image';
-                if (hasVideo) postType = 'video';
-
-                const matchesMedia = (mediaFilterValue === 'all' || mediaFilterValue === postType);
-
-                // Username filtering
-                const usernameElement = post.querySelector('[username]');
-                const postUsername = usernameElement ? usernameElement.textContent.trim().toLowerCase() : '';
-                const matchesUsername = (usernameFilterValue === '' || postUsername.includes(usernameFilterValue));
-
-                // Caption filtering
-                const captionElement = post.querySelector('.post-description');
-                const postCaption = captionElement ? captionElement.textContent.trim().toLowerCase() : '';
-                const matchesCaption = (captionFilterValue === '' || postCaption.includes(captionFilterValue));
-
-                // Show or Hide the post based on the dropdown choice
-                if (matchesMedia && matchesUsername && matchesCaption) {
-                    post.style.display = 'block';
-                } else {
-                    post.style.display = 'none';
-                }
-            });
-        });
-    }*/
-
-    // ==========================================
-    // 9. DELETE POST LOGIC
+    // 7. DELETE POST LOGIC
     // ==========================================
     postContainer.addEventListener('click', function(event) {
         // Check if the clicked element (or its closest parent) is the delete icon
@@ -448,7 +400,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // ==========================================
-    // 10. SHARE POST LOGIC
+    // 8. SHARE POST LOGIC
     // ==========================================
     postContainer.addEventListener('click', function(event) {
         // Check if the clicked element (or its closest parent) is the delete icon
@@ -478,7 +430,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // ===========================================
-    // 11. CREATE EXISTING POSTS DINAMICALLY LOGIC
+    // 9. CREATE EXISTING POSTS DINAMICALLY LOGIC
     // ===========================================
     fetch('/api/posts')
     .then(response => response.json())
@@ -561,11 +513,8 @@ document.addEventListener("DOMContentLoaded", function () {
         mediaUpload.value = '';
     };
 
-
-
-
     // ==========================================
-    // 12. GIF SEARCH LOGIC (API INTEGRATION)
+    // 10. GIF SEARCH LOGIC (API INTEGRATION)
     // ==========================================
     const gifModal = document.getElementById('gifModal');
     const closeGifModal = document.getElementById('closeGifModal');
