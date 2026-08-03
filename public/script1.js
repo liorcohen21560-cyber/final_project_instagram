@@ -4,12 +4,11 @@
  * Part 3: Comments (Add, Count, Toggle display)
  * Part 4: Dark Mode Toggle (POP-UP TEST)
  * Part 5: Back to Top Button (Show on scroll, Smooth scroll)
- * Part 6: Write "The user is typing..." Popup (Show when typing comment, Hide when empty), inside section 3
- * Part 7: Create Post Modal (Image/Video upload, Text caption, Validation)
- * Part 8: Filter by Post Type (All, Images, Videos, Text)
- * Part 9: Delete Post (Remove from DOM)
- * Part 10: Share Post (Simulate share action with alert)
- * Part 11: Create Existing Posts Dynamically (Use the postObjects array to generate posts on page load)
+ * Part 6: Create Post Modal (Image/Video upload, Text caption, Validation)
+ * Part 7: Delete Post (Remove from DOM)
+ * Part 8: Share Post (Simulate share action with alert)
+ * Part 9: Create Existing Posts Dynamically (Use the postObjects array to generate posts on page load)
+ * Part 10: GIF Search Logic (API Integration, Display GIFs, Select and Insert into Comment)
  */
 document.addEventListener("DOMContentLoaded", function () {
     
@@ -19,8 +18,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // ==========================================
     // 1. LIKE BUTTON LOGIC
     // ==========================================
-    const ORIGINAL_LIKE_SRC = "images/like.png";
-    const RED_LIKE_SRC = "images/red_like.png";
+    const ORIGINAL_LIKE_SRC = "media/icons/like.png";
+    const RED_LIKE_SRC = "media/icons/red_like.png";
 
     function initializePost(post) {
         const likeBtnImg = post.querySelector('.like-btn-img');
@@ -167,13 +166,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const searchBtn = document.getElementById('search-btn');
     const searchModal = document.getElementById('searchModal');
     const closeSearch = document.getElementById('closeSearch');
-    const searchInput = document.getElementById('searchInput');
+    const applySearchBtn = document.getElementById('applySearchBtn');
     const resetSearchBtn = document.getElementById('resetSearchBtn');
 
     if (searchBtn) {
         searchBtn.addEventListener('click', function() {
             searchModal.style.display = 'flex';
-            searchInput.focus(); 
         });
     }
 
@@ -189,39 +187,63 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    if (searchInput) {
-        searchInput.addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                document.getElementById('newPostMessage').style.display = 'none'; // Hide the new post message when performing a search
-                const searchQuery = searchInput.value.trim().toLowerCase();
-                const allPosts = document.querySelectorAll('.post-card');
+    if (applySearchBtn) {
+        applySearchBtn.addEventListener('click', function(event) {
+            document.getElementById('newPostMessage').style.display = 'none'; // Hide the new post message when performing a search
+            
+            // .trim().toLowerCase() is used to ensure that the filter values are compared in a case-insensitive manner and without leading/trailing spaces.
+            const mediaFilterValue = document.getElementById('mediaTypeFilter').value;
+            const usernameFilterValue = document.getElementById('usernameFilter').value.trim().toLowerCase();
+            const captionFilterValue = document.getElementById('captionFilter').value.trim().toLowerCase();
+            
+            const allPosts = document.querySelectorAll('.post-card'); 
 
-                allPosts.forEach(post => {
-                    const postDescription = post.querySelector('.post-description');
-                    if (postDescription) {
-                        const textContent = postDescription.textContent.toLowerCase();
-                        if (textContent.includes(searchQuery)) {
-                            post.style.display = 'block'; 
-                        } else {
-                            post.style.display = 'none';  
-                        }
-                    }
-                });
+            allPosts.forEach(post => {
+                // Media type filtering
+                const hasImage = post.querySelector('.post-main-img');
+                const hasVideo = post.querySelector('.video-post');
 
-                searchModal.style.display = 'none';
-                searchInput.value = ''; 
-            }
+                let postType = 'text'; // default fallback
+                if (hasImage) postType = 'image';
+                if (hasVideo) postType = 'video';
+
+                const matchesMedia = (mediaFilterValue === 'all' || mediaFilterValue === postType);
+
+                // Username filtering
+                const usernameElement = post.querySelector('[username]');
+                const postUsername = usernameElement ? usernameElement.textContent.trim().toLowerCase() : '';
+                const matchesUsername = (usernameFilterValue === '' || postUsername.includes(usernameFilterValue));
+
+                // Caption filtering
+                const captionElement = post.querySelector('.post-description');
+                const postCaption = captionElement ? captionElement.textContent.trim().toLowerCase() : '';
+                const matchesCaption = (captionFilterValue === '' || postCaption.includes(captionFilterValue));
+
+                // Show or Hide the post based on the dropdown choice
+                if (matchesMedia && matchesUsername && matchesCaption) {
+                    post.style.display = '';
+                } else {
+                    post.style.display = 'none';
+                }
+            });
+
+            searchModal.style.display = 'none';
         });
     }
 
     if (resetSearchBtn) {
         resetSearchBtn.addEventListener('click', function() {
             document.getElementById('newPostMessage').style.display = 'none'; // Hide the new post message when resetting the search
+            
+            // Reset input fields back to default
+            document.getElementById('mediaTypeFilter').value = 'all';
+            document.getElementById('usernameFilter').value = '';
+            document.getElementById('captionFilter').value = '';
+            
             const allPosts = document.querySelectorAll('.post-card');
             allPosts.forEach(post => {
-                post.style.display = 'block';
+                post.style.display = '';
             });
-            searchInput.value = '';
             searchModal.style.display = 'none';
         });
     }
@@ -264,7 +286,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // ==========================================
-    // 7. CREATE POST BUTTON LOGIC
+    // 6. CREATE POST BUTTON LOGIC
     // ==========================================
     const createPostBtn = document.getElementById('create-post-btn');
     const newPostModal = document.getElementById('newPostModal');
@@ -349,37 +371,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // ==========================================
-    // 8. FILTER BY POST TYPE LOGIC
-    // ==========================================
-    const postFilter = document.getElementById('postFilter');
-
-    if (postFilter) {
-        // Listen for when the user selects a different option
-        postFilter.addEventListener('change', function() {
-            document.getElementById('newPostMessage').style.display = 'none'; // Hide the new post message when filtering
-            const filterType = this.value;
-            const allPosts = document.querySelectorAll('.post-card'); 
-
-            allPosts.forEach(post => {
-                const hasImage = post.querySelector('.post-main-img');
-                const hasVideo = post.querySelector('.video-post');
-
-                let postType = 'text'; // default fallback
-                if (hasImage) postType = 'image';
-                if (hasVideo) postType = 'video';
-
-                // Show or Hide the post based on the dropdown choice
-                if (filterType === 'all' || filterType === postType) {
-                    post.style.display = 'block';
-                } else {
-                    post.style.display = 'none';
-                }
-            });
-        });
-    }
-
-    // ==========================================
-    // 9. DELETE POST LOGIC
+    // 7. DELETE POST LOGIC
     // ==========================================
     postContainer.addEventListener('click', function(event) {
         // Check if the clicked element (or its closest parent) is the delete icon
@@ -408,7 +400,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // ==========================================
-    // 10. SHARE POST LOGIC
+    // 8. SHARE POST LOGIC
     // ==========================================
     postContainer.addEventListener('click', function(event) {
         // Check if the clicked element (or its closest parent) is the delete icon
@@ -438,7 +430,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // ===========================================
-    // 11. CREATE EXISTING POSTS DINAMICALLY LOGIC
+    // 9. CREATE EXISTING POSTS DINAMICALLY LOGIC
     // ===========================================
     fetch('/api/posts')
     .then(response => response.json())
@@ -521,11 +513,8 @@ document.addEventListener("DOMContentLoaded", function () {
         mediaUpload.value = '';
     };
 
-
-
-
     // ==========================================
-    // 12. GIF SEARCH LOGIC (API INTEGRATION)
+    // 10. GIF SEARCH LOGIC (API INTEGRATION)
     // ==========================================
     const gifModal = document.getElementById('gifModal');
     const closeGifModal = document.getElementById('closeGifModal');
