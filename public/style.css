@@ -115,3 +115,23 @@ body.dark-mode .gif-comment-btn:hover { color: #fff; }
 .comment-gif {
     max-width: 150px; border-radius: 8px; margin-top: 5px; display: block;
 }
+.best-day-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px; /* שנה ל- right: 20px אם אתה מעדיף אותו בצד ימין */
+    background-color: #1877f2;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    z-index: 9999; /* דואג שזה יופיע מעל כל הפוסטים */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: background-color 0.3s;
+}
+
+.best-day-btn:hover {
+    background-color: #165eab;
+}

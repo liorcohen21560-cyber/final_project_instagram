@@ -98,4 +98,62 @@ exports.searchGifs = (req, res) => {
     }).on('error', (error) => {
         res.status(500).json({ success: false, message: "שגיאה בתקשורת לגיפי" });
     });
+
+    
+};
+
+// ==========================================
+// פונקציה לפרסום פוסט בדף הפייסבוק
+// ==========================================
+exports.postToFacebook = (req, res) => {
+    const https = require('https');
+    
+    // שולפים את הסודות שלנו מקובץ ה-.env
+    const pageId = process.env.FB_PAGE_ID;
+    const accessToken = process.env.FB_ACCESS_TOKEN;
+    const message = "היה לי היום את היום הכי טוב כבר תקופה"; // ההודעה שביקשת
+
+    // מכינים את החבילה שתשלח לפייסבוק
+    const postData = JSON.stringify({
+        message: message,
+        access_token: accessToken
+    });
+
+    const options = {
+        hostname: 'graph.facebook.com',
+        path: `/v19.0/${pageId}/feed`,
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData)
+        }
+    };
+
+    const request = https.request(options, (response) => {
+        let data = '';
+        
+        response.on('data', (chunk) => { data += chunk; });
+        
+        response.on('end', () => {
+            try {
+                const parsedData = JSON.parse(data);
+                // אם פייסבוק מחזירים ID, סימן שהפוסט עלה
+                if (parsedData.id) {
+                    res.json({ success: true, message: "הסטטוס פורסם בהצלחה!", postId: parsedData.id });
+                } else {
+                    res.json({ success: false, error: parsedData });
+                }
+            } catch (error) {
+                res.status(500).json({ success: false, message: "שגיאה בפענוח התשובה מפייסבוק" });
+            }
+        });
+    });
+
+    request.on('error', (error) => {
+        console.error("Facebook API Error:", error);
+        res.status(500).json({ success: false, message: "שגיאה בתקשורת מול פייסבוק" });
+    });
+
+    request.write(postData);
+    request.end();
 };
