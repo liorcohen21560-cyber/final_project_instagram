@@ -15,7 +15,7 @@ module.exports = {
     addPost: async (newPostData) => {
         try {
             const newPost = new Post({
-                user_profile_image: "images/profile.png",
+                user_profile_image: "media/profile-pictures/profile.png",
                 username: "liorcohen299",
                 upload_time: "• עכשיו",
                 post_type: newPostData.post_type || "text",

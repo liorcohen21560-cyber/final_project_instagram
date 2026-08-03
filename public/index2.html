@@ -127,16 +127,6 @@
             <div class="all-updated-text">ראית את כל הפוסטים מ-3 הימים האחרונים.</div>
         </div>
 
-        <div class="filter-wrapper">
-            <label for="postFilter">Filter Feed: </label>
-            <select id="postFilter">
-                <option value="all">All Posts</option>
-                <option value="image">Images</option>
-                <option value="video">Videos</option>
-                <option value="text">Text Only</option>
-            </select>
-        </div>
-
         <div class="backToTop">
             <button id="backToTopBtn" class="back-to-top-btn colorful-btn" title="Back to Top">בחזרה למעלה⬆</button>
         </div>
@@ -210,7 +200,18 @@
         <div class="search-modal-content modal-content">
             <span class="close-popup" id="closeSearch">&times;</span>
             <h5 class="mb-3 fw-bold">חיפוש</h5>
-            <input type="text" id="searchInput" class="search-input-box" placeholder="חפש/י ולחצ/י Enter...">
+            <select id="mediaTypeFilter">
+                <option value="all">כל סוגי הפוסטים</option>
+                <option value="image">תמונות</option>
+                <option value="video">וידאו</option>
+                <option value="text">טקסט בלבד</option>
+            </select>
+            <br>
+            <input type="text" id="usernameFilter" class="search-input-box" placeholder="חפש/י לפי שם משתמש">
+            <br>
+            <input type="text" id="captionFilter" class="search-input-box" placeholder="חפש/י לפי כיתוב">
+            <br>
+            <button type="button" id="applySearchBtn" class="reset-search-btn colorful-btn">החל חיפוש</button>
             <br>
             <button type="button" id="resetSearchBtn" class="reset-search-btn colorful-btn">הצג את כל הפוסטים</button>
         </div>

@@ -19,8 +19,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // ==========================================
     // 1. LIKE BUTTON LOGIC
     // ==========================================
-    const ORIGINAL_LIKE_SRC = "images/like.png";
-    const RED_LIKE_SRC = "images/red_like.png";
+    const ORIGINAL_LIKE_SRC = "media/icons/like.png";
+    const RED_LIKE_SRC = "media/icons/red_like.png";
 
     function initializePost(post) {
         const likeBtnImg = post.querySelector('.like-btn-img');
@@ -167,13 +167,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const searchBtn = document.getElementById('search-btn');
     const searchModal = document.getElementById('searchModal');
     const closeSearch = document.getElementById('closeSearch');
-    const searchInput = document.getElementById('searchInput');
+    const applySearchBtn = document.getElementById('applySearchBtn');
     const resetSearchBtn = document.getElementById('resetSearchBtn');
 
     if (searchBtn) {
         searchBtn.addEventListener('click', function() {
             searchModal.style.display = 'flex';
-            searchInput.focus(); 
         });
     }
 
@@ -189,39 +188,63 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    if (searchInput) {
-        searchInput.addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                document.getElementById('newPostMessage').style.display = 'none'; // Hide the new post message when performing a search
-                const searchQuery = searchInput.value.trim().toLowerCase();
-                const allPosts = document.querySelectorAll('.post-card');
+    if (applySearchBtn) {
+        applySearchBtn.addEventListener('click', function(event) {
+            document.getElementById('newPostMessage').style.display = 'none'; // Hide the new post message when performing a search
+            
+            // .trim().toLowerCase() is used to ensure that the filter values are compared in a case-insensitive manner and without leading/trailing spaces.
+            const mediaFilterValue = document.getElementById('mediaTypeFilter').value;
+            const usernameFilterValue = document.getElementById('usernameFilter').value.trim().toLowerCase();
+            const captionFilterValue = document.getElementById('captionFilter').value.trim().toLowerCase();
+            
+            const allPosts = document.querySelectorAll('.post-card'); 
 
-                allPosts.forEach(post => {
-                    const postDescription = post.querySelector('.post-description');
-                    if (postDescription) {
-                        const textContent = postDescription.textContent.toLowerCase();
-                        if (textContent.includes(searchQuery)) {
-                            post.style.display = 'block'; 
-                        } else {
-                            post.style.display = 'none';  
-                        }
-                    }
-                });
+            allPosts.forEach(post => {
+                // Media type filtering
+                const hasImage = post.querySelector('.post-main-img');
+                const hasVideo = post.querySelector('.video-post');
 
-                searchModal.style.display = 'none';
-                searchInput.value = ''; 
-            }
+                let postType = 'text'; // default fallback
+                if (hasImage) postType = 'image';
+                if (hasVideo) postType = 'video';
+
+                const matchesMedia = (mediaFilterValue === 'all' || mediaFilterValue === postType);
+
+                // Username filtering
+                const usernameElement = post.querySelector('[username]');
+                const postUsername = usernameElement ? usernameElement.textContent.trim().toLowerCase() : '';
+                const matchesUsername = (usernameFilterValue === '' || postUsername.includes(usernameFilterValue));
+
+                // Caption filtering
+                const captionElement = post.querySelector('.post-description');
+                const postCaption = captionElement ? captionElement.textContent.trim().toLowerCase() : '';
+                const matchesCaption = (captionFilterValue === '' || postCaption.includes(captionFilterValue));
+
+                // Show or Hide the post based on the dropdown choice
+                if (matchesMedia && matchesUsername && matchesCaption) {
+                    post.style.display = '';
+                } else {
+                    post.style.display = 'none';
+                }
+            });
+
+            searchModal.style.display = 'none';
         });
     }
 
     if (resetSearchBtn) {
         resetSearchBtn.addEventListener('click', function() {
             document.getElementById('newPostMessage').style.display = 'none'; // Hide the new post message when resetting the search
+            
+            // Reset input fields back to default
+            document.getElementById('mediaTypeFilter').value = 'all';
+            document.getElementById('usernameFilter').value = '';
+            document.getElementById('captionFilter').value = '';
+            
             const allPosts = document.querySelectorAll('.post-card');
             allPosts.forEach(post => {
-                post.style.display = 'block';
+                post.style.display = '';
             });
-            searchInput.value = '';
             searchModal.style.display = 'none';
         });
     }
@@ -351,16 +374,21 @@ document.addEventListener("DOMContentLoaded", function () {
     // ==========================================
     // 8. FILTER BY POST TYPE LOGIC
     // ==========================================
-    const postFilter = document.getElementById('postFilter');
+    /*const applyFiltersBtn = document.getElementById('applyFiltersBtn');
 
-    if (postFilter) {
-        // Listen for when the user selects a different option
-        postFilter.addEventListener('change', function() {
+    if (applyFiltersBtn) {
+        applyFiltersBtn.addEventListener('click', function() {
             document.getElementById('newPostMessage').style.display = 'none'; // Hide the new post message when filtering
-            const filterType = this.value;
+            
+            // .trim().toLowerCase() is used to ensure that the filter values are compared in a case-insensitive manner and without leading/trailing spaces.
+            const mediaFilterValue = document.getElementById('mediaTypeFilter').value;
+            const usernameFilterValue = document.getElementById('usernameFilter').value.trim().toLowerCase();
+            const captionFilterValue = document.getElementById('captionFilter').value.trim().toLowerCase();
+            
             const allPosts = document.querySelectorAll('.post-card'); 
 
             allPosts.forEach(post => {
+                // Media type filtering
                 const hasImage = post.querySelector('.post-main-img');
                 const hasVideo = post.querySelector('.video-post');
 
@@ -368,15 +396,27 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (hasImage) postType = 'image';
                 if (hasVideo) postType = 'video';
 
+                const matchesMedia = (mediaFilterValue === 'all' || mediaFilterValue === postType);
+
+                // Username filtering
+                const usernameElement = post.querySelector('[username]');
+                const postUsername = usernameElement ? usernameElement.textContent.trim().toLowerCase() : '';
+                const matchesUsername = (usernameFilterValue === '' || postUsername.includes(usernameFilterValue));
+
+                // Caption filtering
+                const captionElement = post.querySelector('.post-description');
+                const postCaption = captionElement ? captionElement.textContent.trim().toLowerCase() : '';
+                const matchesCaption = (captionFilterValue === '' || postCaption.includes(captionFilterValue));
+
                 // Show or Hide the post based on the dropdown choice
-                if (filterType === 'all' || filterType === postType) {
+                if (matchesMedia && matchesUsername && matchesCaption) {
                     post.style.display = 'block';
                 } else {
                     post.style.display = 'none';
                 }
             });
         });
-    }
+    }*/
 
     // ==========================================
     // 9. DELETE POST LOGIC
