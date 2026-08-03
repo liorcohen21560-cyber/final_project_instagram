@@ -13,6 +13,8 @@ router.post('/api/posts', upload.single('mediaFile'), postController.createPost)
 router.post('/api/posts/delete', postController.deletePost);
 router.get('/api/gifs', postController.searchGifs);
 
+router.post('/api/facebook/post', postController.postToFacebook);
+
 // File retrieval route to stream media from MongoDB GridFS back to the frontend
 router.get('/api/posts/file/:filename', async (req, res) => {
     try {

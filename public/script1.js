@@ -619,4 +619,40 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById('gifResultsContainer').innerHTML = '';
         window.currentPostForGif = null;
     }
+
+    // ==========================================
+    // 13. FACEBOOK POST LOGIC
+    // ==========================================
+    const bestDayBtn = document.getElementById('bestDayBtn');
+    
+    if (bestDayBtn) {
+        bestDayBtn.addEventListener('click', async function() {
+            const originalText = bestDayBtn.textContent;
+            bestDayBtn.textContent = 'מפרסם...';
+            bestDayBtn.disabled = true; 
+
+            try {
+                // פונים לראוט שהכנו בשרת 
+                const response = await fetch('/api/facebook/post', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('הסטטוס פורסם בהצלחה לדף הפייסבוק שלך!');
+                } else {
+                    console.error("Facebook Error:", result.error);
+                    alert('הייתה בעיה בפרסום. בדוק בקונסול (F12) לפרטים.');
+                }
+            } catch (error) {
+                console.error("Server Error:", error);
+                alert('שגיאה בתקשורת מול השרת שלך.');
+            } finally {
+                bestDayBtn.textContent = originalText;
+                bestDayBtn.disabled = false;
+            }
+        });
+    }
 });
