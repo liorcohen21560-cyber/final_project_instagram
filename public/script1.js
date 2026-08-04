@@ -346,6 +346,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             const formData = new FormData();
+            formData.append('username', "liorcohen299"); // Remember to replace this with the actual logged-in user's username in a real application
             formData.append('post_type', postType);
             formData.append('caption', caption.value.trim());
 
