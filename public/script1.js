@@ -11,6 +11,52 @@
  * Part 10: GIF Search Logic (API Integration, Display GIFs, Select and Insert into Comment)
  */
 document.addEventListener("DOMContentLoaded", function () {
+
+    const currentUser = {
+        username: "liorcohen299", // Fallback default
+        profileImage: "media/profile-pictures/default_profile.png" // Fallback default
+    };
+
+    // save the logged in user values for use in the script
+    async function fetchCurrentUser() {
+        try {
+            const response = await fetch('/api/current-user');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.username) {
+                    currentUser.username = data.username;
+
+                    // Update the username in the suggestions section
+                    const suggestionUsernameElement = document.querySelector('.suggestions-side .user-row .fw-bold');
+                    if (suggestionUsernameElement) {
+                        suggestionUsernameElement.textContent = data.username;
+                    }
+
+                }
+                if (data.user_profile_image) {
+                    currentUser.profileImage = data.user_profile_image;
+                    console.log("Current user profile image:", currentUser.profileImage);
+
+                    // Update the profile image in the sidebar
+                    const myProfileImgElement = document.querySelector('#profile-btn img');
+                    if (myProfileImgElement) {
+                        myProfileImgElement.src = data.user_profile_image;
+                    }
+
+                    // Update the profile image in the suggestions section
+                    const suggestionProfileImgElement = document.querySelector('.suggestions-side .user-row img');
+                    if (suggestionProfileImgElement) {
+                        suggestionProfileImgElement.src = data.user_profile_image;
+                    }
+
+                }
+            }
+        } catch (error) {
+            console.error("Could not fetch current session user:", error);
+        }
+    }
+
+    fetchCurrentUser();
     
     const posts = document.querySelectorAll('.post-card');
     const postContainer = document.getElementById('postsContainer');
@@ -131,7 +177,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const newComment = document.createElement('div');
             newComment.classList.add('single-comment');
-            newComment.innerHTML = `<strong>liorcohen299</strong> ${commentText}`;
+            newComment.innerHTML = `<strong>${currentUser.username}</strong> ${commentText}`;
 
             commentsList.appendChild(newComment);
 
@@ -346,7 +392,8 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             const formData = new FormData();
-            formData.append('username', "liorcohen299"); // Remember to replace this with the actual logged-in user's username in a real application
+            formData.append('username', currentUser.username);
+            formData.append('user_profile_image', currentUser.profileImage);
             formData.append('post_type', postType);
             formData.append('caption', caption.value.trim());
 
@@ -456,6 +503,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const uploadTimeElement = clone.querySelector('[upload-time]');
         uploadTimeElement.textContent = postData.upload_time;
 
+        const typingPopupElement = clone.querySelector('.user-typing-popup');
+        if (typingPopupElement) {
+            typingPopupElement.innerHTML = `<strong>${currentUser.username}</strong> is typing...`;
+        }
+
         const mediaContainer = clone.querySelector('[post-content]');
         let mediaElement;
         if (postData.post_type === 'text') {
@@ -478,12 +530,17 @@ document.addEventListener("DOMContentLoaded", function () {
         mediaContainer.appendChild(mediaElement);
 
         const captionElement = clone.querySelector('[caption]');
-        const strongEl = captionElement.querySelector('strong');
-        strongEl.style.display = 'inline';
+        if (captionElement) {
+            const strongEl = captionElement.querySelector('strong');
+            if (strongEl) {
+                strongEl.textContent = postData.username;
+                strongEl.style.display = 'inline';
+            }
 
-        captionElement.style.display = 'block';
-        if (postData.caption) {
-            captionElement.append(' ' + postData.caption);
+            captionElement.style.display = 'block';
+            if (postData.caption) {
+                captionElement.append(' ' + postData.caption);
+            }
         }
 
         const likeCount = clone.querySelector('[like-count]');
@@ -588,7 +645,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // יצירת התגובה עם התמונה
         const newComment = document.createElement('div');
         newComment.classList.add('single-comment');
-        newComment.innerHTML = `<strong>liorcohen299</strong> <br> <img src="${gifUrl}" class="comment-gif" style="max-width: 150px; border-radius: 8px; margin-top: 5px;">`;
+        newComment.innerHTML = `<strong>${currentUser.username}</strong> <br> <img src="${gifUrl}" class="comment-gif" style="max-width: 150px; border-radius: 8px; margin-top: 5px;">`;
         
         // הוספה למסך
         commentsList.appendChild(newComment);
