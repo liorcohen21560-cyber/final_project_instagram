@@ -1,8 +1,8 @@
 require('dotenv').config(); // Load environment variables from .env file
 const express = require('express');
+const session = require('express-session'); // Import express-session for session management
 const path = require('path');
 const mongoose = require('mongoose');
-
 
 const authRoutes = require('./routes/authRoutes');
 const postRoutes = require('./routes/postRoutes');
@@ -12,6 +12,14 @@ const PORT = 3000;
 
 // Parse incoming JSON requests
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Configure session middleware
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false
+}));
 
 // Routes
 app.use(authRoutes);

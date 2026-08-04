@@ -4,7 +4,22 @@ module.exports = {
     // Fetch all posts from MongoDB, sorted by newest first
     getAllPosts: async () => {
         try {
-            return await Post.find().sort({ createdAt: -1 });
+            const posts = await Post.find()
+            .populate('authorDetails', "user_profile_image")
+            .sort({ createdAt: -1 });
+
+            // Map through the posts to inject the fallback logic for legacy documents
+            return posts.map(post => {
+                const postObj = post.toObject ? post.toObject() : post;
+                
+                // If the post is missing user_profile_image, fall back to the User collection or a default image
+                if (!postObj.user_profile_image || postObj.user_profile_image === "") {
+                    postObj.user_profile_image = postObj.authorDetails?.user_profile_image || 'media/profile-pictures/profile.png';
+                }
+                
+                return postObj;
+            });
+
         } catch (error) {
             console.error("Error fetching posts:", error);
             throw error;

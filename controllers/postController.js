@@ -5,7 +5,20 @@ const postModel = require('../models/postModel');
 exports.getFeed = async (req, res) => {
     try {
         const posts = await postModel.getAllPosts();
-        res.json(posts);
+
+        // Format posts so the frontend receives the correct user_profile_image from User collection
+        const formattedPosts = posts.map(post => {
+            const postObj = post.toObject ? post.toObject() : post;
+            
+            // If authorDetails was found via virtual populate, override the profile image
+            if (postObj.authorDetails && postObj.authorDetails.user_profile_image) {
+                postObj.user_profile_image = postObj.authorDetails.user_profile_image;
+            }
+            
+            return postObj;
+        });
+        
+        res.json(formattedPosts);
     } catch (error) {
         res.status(500).json({ success: false, message: "Server error fetching feed." });
     }
@@ -35,7 +48,9 @@ exports.createPost = async (req, res) => {
             postContent = `api/posts/file/${filename}`;
         }
 
+        // Make sure you pass the current logged-in user's username here!
         const postData = {
+            username: req.body.username, // Ensure username is provided in the request body
             post_type: req.body.post_type,
             caption: req.body.caption,
             post_content: postContent
