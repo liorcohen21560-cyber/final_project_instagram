@@ -28,7 +28,7 @@
                 <img src="media/icons/dark_mode.png" class="sidebar-icon-img" alt="Dark Mode">
             </div>
             
-            <div class="sidebar-item"><img src="media/icons/tabs.png" class="sidebar-icon-img" alt="More"></div>
+            <div class="sidebar-item" id="settings-btn"><img src="media/icons/tabs.png" class="sidebar-icon-img" alt="More"></div>
             <div class="sidebar-item"><img src="media/icons/meta.png" style="width: 30px; opacity: 0.7;" alt="Meta"></div>
         </div>
     </div>
@@ -284,6 +284,49 @@
             <div id="gifResultsContainer" class="gif-results-grid"></div>
         </div>
     </div>
+
+
+    <!-- חלון הגדרות - עדכון ומחיקת חשבון -->
+    <div id="settingsModal" class="search-modal-overlay modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="close-popup" id="closeSettings">&times;</span>
+            <h5 class="mb-3 fw-bold">הגדרות חשבון</h5>
+            <p style="font-size: 14px; color: #737373;">כאן תוכל לנהל את החשבון שלך.</p>
+            
+            <!-- החלק החדש: עדכון שם משתמש -->
+            <div class="text-start mb-4" style="border-top: 1px solid #efefef; padding-top: 15px;">
+                <label style="font-size: 13px; font-weight: bold;">שנה שם משתמש:</label>
+                <input type="text" id="newUsernameInput" class="search-input-box mb-2" placeholder="שם משתמש חדש">
+                <button id="updateUsernameBtn" class="colorful-btn" style="background: #0095f6; width: 100%;">עדכן שם משתמש</button>
+            </div>
+            
+            <!-- כפתור המחיקה שהוספנו קודם -->
+            <div style="border-top: 1px solid #efefef; padding-top: 15px;">
+                <button id="deleteAccountBtn" class="colorful-btn" style="background: #ed4956; width: 100%;">מחק את החשבון שלי</button>
+            </div>
+        </div>
+    </div>
+
+        
+    <!-- כפתור חיפוש משתמשים בצד שמאל למטה -->
+    
+    <button id="openUserSearchBtn" class="colorful-btn" style="position: fixed; bottom: 20px; left: 20px; z-index: 9999; padding: 10px 15px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer;">חיפוש משתמשים 🔍</button>
+    
+    <!-- 2. החלון הקופץ של החיפוש (שמוסתר בברירת מחדל) -->
+    <div id="userSearchModal" class="search-modal-overlay modal-overlay">
+        <div class="modal-content" style="max-width: 450px; max-height: 80vh; display: flex; flex-direction: column;">
+            <span class="close-popup" id="closeUserSearch">&times;</span>
+            <h5 class="mb-3 fw-bold">חיפוש משתמשים</h5>
+            
+            <!-- שורת החיפוש -->
+            <input type="text" id="liveUserSearchInput" class="search-input-box mb-3" placeholder="הקלד/י שם משתמש לחיפוש...">
+            
+            <!-- כאן יופיעו התוצאות -->
+            <div id="userSearchResults" style="overflow-y: auto; flex-grow: 1; text-align: right;"></div>
+        </div>
+    </div>
+
+    
     <script src="script1.js?v=3"></script>
 </body>
 </html>

@@ -65,4 +65,45 @@ document.addEventListener("DOMContentLoaded", function () {
             .catch(err => console.error("Error connecting to server:", err));
         }
     });
+
+
+    
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    // --- הוספת לוגיקת ההרשמה ---
+    const registerForm = document.getElementById("registerForm");
+
+    if (registerForm) {
+        registerForm.addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            const username = document.getElementById("regUsername").value.trim();
+            const email = document.getElementById("regEmail").value.trim();
+            const password = document.getElementById("regPassword").value.trim();
+            const registerError = document.getElementById("registerError");
+
+            fetch('/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, email, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("החשבון נוצר בהצלחה! כעת ניתן להתחבר.");
+                    // סגירת הפופ-אפ אוטומטית ואיפוס הטופס
+                    const modalEl = document.getElementById('registerModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                    modal.hide();
+                    registerForm.reset();
+                    registerError.style.display = "none";
+                } else {
+                    registerError.textContent = data.message;
+                    registerError.style.display = "block";
+                }
+            })
+            .catch(err => console.error("Error creating user:", err));
+        });
+    }
 });
