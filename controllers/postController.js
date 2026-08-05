@@ -50,7 +50,8 @@ exports.createPost = async (req, res) => {
 
         // Make sure you pass the current logged-in user's username here!
         const postData = {
-            username: req.body.username, // Ensure username is provided in the request body
+            username: req.body.username,
+            user_profile_image: req.body.user_profile_image,
             post_type: req.body.post_type,
             caption: req.body.caption,
             post_content: postContent

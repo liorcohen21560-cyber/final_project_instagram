@@ -14,7 +14,7 @@ module.exports = {
                 
                 // If the post is missing user_profile_image, fall back to the User collection or a default image
                 if (!postObj.user_profile_image || postObj.user_profile_image === "") {
-                    postObj.user_profile_image = postObj.authorDetails?.user_profile_image || 'media/profile-pictures/profile.png';
+                    postObj.user_profile_image = postObj.authorDetails?.user_profile_image || 'media/profile-pictures/default_profile.jpg';
                 }
                 
                 return postObj;
@@ -30,8 +30,8 @@ module.exports = {
     addPost: async (newPostData) => {
         try {
             const newPost = new Post({
-                user_profile_image: "media/profile-pictures/profile.png",
-                username: "liorcohen299",
+                user_profile_image: newPostData.user_profile_image || "media/profile-pictures/default_profile.jpg",
+                username: newPostData.username || "liorcohen299",
                 upload_time: "• עכשיו",
                 post_type: newPostData.post_type || "text",
                 post_content: newPostData.post_content,

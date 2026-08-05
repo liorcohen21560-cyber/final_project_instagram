@@ -30,7 +30,9 @@ exports.login = async (req, res) => {
             { $set: { last_login: new Date() } }
         );
 
-        req.session.username = user.username; // Store the username in the session
+        // Store the username and user_profile_image in the session
+        req.session.username = user.username;
+        req.session.user_profile_image = user.user_profile_image;
 
         return res.status(200).json({ success: true });
     } else {
