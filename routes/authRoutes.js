@@ -1,13 +1,23 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authControllers');
+const groupController = require('../controllers/groupControllers');
+
+
 
 router.post('/login', authController.login);
 router.get('/index2.html', authController.protectFeed);
 router.post('/register', authController.register);
 router.delete('/delete-account', authController.deleteAccount);
 router.put('/update-username', authController.updateUsername);
-router.get('/search-users', authController.searchUsers);
+router.post('/create-group', groupController.createGroup);
+router.delete('/delete-group', groupController.deleteGroup);
+router.put('/update-group-name', groupController.updateGroupName);
+router.post('/add-user-to-group', groupController.addUserToGroup);
+router.get('/search-all', groupController.searchAll);
+router.get('/group-members/:groupName', groupController.getGroupMembers);
+
+
 
 
 router.get('/api/current-user', (req, res) => {
