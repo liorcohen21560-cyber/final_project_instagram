@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const { GridFSBucket } = require('mongodb');
 const postModel = require('../models/postModel');
+const Post = require('../models/Post'); 
 
 exports.getFeed = async (req, res) => {
     try {
@@ -172,4 +173,35 @@ exports.postToFacebook = (req, res) => {
 
     request.write(postData);
     request.end();
+};
+
+
+
+
+exports.getTopActiveUsers = async (req, res) => {
+    try {
+       
+        const topUsers = await Post.aggregate([ 
+            {
+               
+                $group: {
+                    _id: "$username",
+                    postCount: { $sum: 1 }
+                }
+            },
+            {
+                
+                $sort: { postCount: -1 }
+            },
+            {
+                // הגבלה ל-5 המובילים
+                $limit: 5
+            }
+        ]); // <-- סגירת מערך
+
+        return res.status(200).json({ success: true, data: topUsers });
+    } catch (error) {
+        console.error("Top Users Stats Error:", error);
+        return res.status(500).json({ success: false, message: "שגיאה בשליפת נתוני משתמשים פעילים." });
+    }
 };

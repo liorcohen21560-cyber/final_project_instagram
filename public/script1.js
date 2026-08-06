@@ -798,9 +798,114 @@ document.addEventListener("DOMContentLoaded", function () {
     const groupMembersModal = document.getElementById("groupMembersModal");
     const closeGroupMembers = document.getElementById("closeGroupMembers");
 
+
+
+
+
+   function drawGroupMembersGraph() {
+    fetch('/statistics/groups')
+        .then(response => response.json())
+        .then(res => {
+            if (!res.success || res.data.length === 0) return;
+
+            const data = res.data;
+            
+           
+            d3.select("#groupMembersGraph").selectAll("*").remove();
+
+            
+            let tooltip = d3.select("#groupMembersGraph").select(".tooltip");
+            if (tooltip.empty()) {
+                tooltip = d3.select("body") 
+                  .append("div")
+                  .attr("class", "tooltip")
+                  .style("opacity", 0)
+                  .style("position", "absolute")
+                  .style("background-color", "rgba(0, 0, 0, 0.8)")
+                  .style("color", "white")
+                  .style("border-radius", "6px")
+                  .style("padding", "8px 12px")
+                  .style("font-size", "12px")
+                  .style("pointer-events", "none") 
+                  .style("z-index", "10000");
+            }
+
+            const margin = {top: 20, right: 20, bottom: 20, left: 40},
+                  width = 380 - margin.left - margin.right,
+                  height = 250 - margin.top - margin.bottom;
+
+            const svg = d3.select("#groupMembersGraph")
+              .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+              .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            const x = d3.scaleBand()
+              .range([ 0, width ])
+              .domain(data.map(d => d.groupName))
+              .padding(0.2);
+              
+           
+            svg.append("g")
+              .attr("transform", `translate(0,${height})`)
+              .call(d3.axisBottom(x))
+              .selectAll("text")
+              .remove(); 
+
+            const maxMembers = d3.max(data, d => d.memberCount);
+            const y = d3.scaleLinear()
+              .domain([0, maxMembers + 1])
+              .range([ height, 0]);
+              
+            svg.append("g")
+              .call(d3.axisLeft(y).ticks(maxMembers));
+
+           
+            svg.selectAll("mybar")
+              .data(data)
+              .join("rect")
+                .attr("x", d => x(d.groupName))
+                .attr("width", x.bandwidth())
+                .attr("fill", "#0095f6")
+               
+                .on("mouseover", function(event, d) {
+                    d3.select(this).attr("fill", "#0077c9"); 
+                    tooltip.style("opacity", 1);
+                })
+               
+                .on("mousemove", function(event, d) {
+                    tooltip
+                      .html(`<strong>${d.groupName}</strong><br/>${d.memberCount} חברים`)
+                      .style("left", (event.pageX + 15) + "px") 
+                      .style("top", (event.pageY - 25) + "px"); 
+                })
+               
+                .on("mouseout", function(event, d) {
+                    d3.select(this).attr("fill", "#0095f6"); 
+                    tooltip.style("opacity", 0);
+                })
+               
+                .attr("y", d => y(0))
+                .attr("height", 0)
+              .transition()
+              .duration(1000)
+                .attr("y", d => y(d.memberCount))
+                .attr("height", d => height - y(d.memberCount));
+        })
+        .catch(err => console.error("Error fetching graph data:", err));
+    }
+
     if (openUserSearchBtn && userSearchModal) {
-        openUserSearchBtn.addEventListener("click", () => userSearchModal.style.display = "flex");
-        closeUserSearch.addEventListener("click", () => userSearchModal.style.display = "none");
+       openUserSearchBtn.addEventListener("click", () => {
+            userSearchModal.style.display = "flex";
+            drawGroupMembersGraph(); 
+        });
+    
+    
+        closeUserSearch.addEventListener("click", () => {
+            userSearchModal.style.display = "none";
+        });
         
         if(closeGroupMembers) {
             closeGroupMembers.addEventListener("click", () => groupMembersModal.style.display = "none");
@@ -1103,3 +1208,98 @@ document.addEventListener("DOMContentLoaded", function () {
     
 });
 
+function drawTopUsersGraph() {
+    fetch('/statistics/top-users')
+        .then(response => response.json())
+        .then(res => {
+            if (!res.success || res.data.length === 0) return;
+
+            const data = res.data;
+            
+            
+            d3.select("#topUsersGraph").selectAll("*").remove();
+
+           
+            let tooltip = d3.select("#topUsersGraph").select(".tooltip");
+            if (tooltip.empty()) {
+                tooltip = d3.select("body")
+                  .append("div")
+                  .attr("class", "tooltip")
+                  .style("opacity", 0)
+                  .style("position", "absolute")
+                  .style("background-color", "rgba(0, 0, 0, 0.8)")
+                  .style("color", "white")
+                  .style("border-radius", "6px")
+                  .style("padding", "8px 12px")
+                  .style("font-size", "12px")
+                  .style("pointer-events", "none")
+                  .style("z-index", "10000");
+            }
+
+           
+            const margin = {top: 10, right: 15, bottom: 20, left: 10}, 
+                  width = 230 - margin.left - margin.right,
+                  height = 130 - margin.top - margin.bottom;
+
+            const svg = d3.select("#topUsersGraph")
+              .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+              .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            const maxPosts = d3.max(data, d => d.postCount);
+            const x = d3.scaleLinear()
+              .domain([0, maxPosts])
+              .range([ 0, width]);
+              
+            svg.append("g")
+              .attr("transform", `translate(0,${height})`)
+              .call(d3.axisBottom(x).ticks(maxPosts > 5 ? 5 : maxPosts))
+              .selectAll("text")
+                .style("font-size", "9px")
+                .style("color", "#737373");
+
+           
+            const y = d3.scaleBand()
+              .range([ 0, height ])
+              .domain(data.map(d => d._id))
+              .padding(.2);
+              
+          
+            svg.append("g")
+              .call(d3.axisLeft(y))
+              .selectAll("text")
+              .remove(); 
+
+           
+            svg.selectAll("myRect")
+              .data(data)
+              .join("rect")
+              .attr("x", x(0) )
+              .attr("y", d => y(d._id))
+              .attr("height", y.bandwidth())
+              .attr("fill", "#ed4956") // אדום אינסטגרם
+              .on("mouseover", function(event, d) {
+                  d3.select(this).attr("fill", "#c93340"); // מחשיך קצת במעבר עכבר
+                  tooltip.style("opacity", 1);
+              })
+              .on("mousemove", function(event, d) {
+                  tooltip
+                    .html(`<strong>${d._id}</strong><br/>${d.postCount} פוסטים`)
+                    .style("left", (event.pageX + 15) + "px")
+                    .style("top", (event.pageY - 25) + "px");
+              })
+              .on("mouseout", function(event, d) {
+                  d3.select(this).attr("fill", "#ed4956"); // מחזיר לצבע המקורי
+                  tooltip.style("opacity", 0);
+              })
+              .attr("width", 0)
+              .transition()
+              .duration(1000)
+              .attr("width", d => x(d.postCount));
+        })
+        .catch(err => console.error("Error fetching top users graph:", err));
+}
+
+drawTopUsersGraph();
