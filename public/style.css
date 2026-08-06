@@ -26,7 +26,7 @@ body {
 .all-updated {display: flex; flex-direction: column; align-items: center;}
 .all-updated-icon {margin-bottom: 20px;}
 .all-updated-text-header {font-weight: bold;}
-.colorful-btn {background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);; color: white; border: none; width: fit-content; align-self: center; justify-self: center;}
+.colorful-btn {background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);; color: white; border: none; width: fit-content; align-self: center; justify-self: center; margin-top: 2px;}
 .back-to-top-btn {position: fixed; bottom: 20px; right: 120px; /* Adjust based on sidebar width */ padding: 10px 15px; font-size: 14px; z-index: 1001; /* Above the sidebar */}
 
 /* STORIES */

@@ -207,15 +207,74 @@ exports.addUserToGroup = async (req, res) => {
 // פונקציה 1: חיפוש גם משתמשים וגם קבוצות
 exports.searchAll = async (req, res) => {
     try {
-        const query = req.query.q;
-        if (!query) return res.json({ success: true, users: [], groups: [] });
+        const { filter = 'all', q = '', admin = '', group = '' } = req.query;
 
-        // מריצים שתי שאילתות במקביל כדי לחסוך זמן
-        const usersPromise = User.find({ username: { $regex: query, $options: 'i' } })
-            .select('username user_profile_image _id').limit(10);
-            
-        const groupsPromise = Group.find({ group_name: { $regex: query, $options: 'i' } })
-            .select('group_name admin members').limit(10);
+        // אם כל שדות החיפוש ריקים, מחזירים תוצאות ריקות
+        if (!q && !admin && !group) {
+            return res.json({ success: true, users: [], groups: [] });
+        }
+
+        let usersPromise = Promise.resolve([]);
+        let groupsPromise = Promise.resolve([]);
+
+        // --- חיפוש משתמשים ---
+        if (filter === 'all' || filter === 'users') {
+            let userQueryCondition = {};
+
+            // חיפוש לפי שם משתמש כללי (q) אם קיים
+            if (q) {
+                userQueryCondition.username = { $regex: q, $options: 'i' };
+            }
+
+            // אם הוגדר חיפוש לפי שם קבוצה (group)
+            if (group) {
+                const matchingGroups = await Group.find({ 
+                    group_name: { $regex: group, $options: 'i' } 
+                }).select('members');
+
+                // איסוף כל שמות המשתמש מתוך מערכי החברים של הקבוצות התואמות, והסרת כפילויות בעזרת Set
+                const usernamesInGroups = [...new Set(matchingGroups.flatMap(g => g.members || []))];
+
+                if (usernamesInGroups.length === 0) {
+                    // אם לא נמצאו קבוצות תואמות או שאין חברים בקבוצות
+                    userQueryCondition.username = { $in: [] };
+                } else {
+                    if (userQueryCondition.username) {
+                        userQueryCondition = {
+                            $and: [
+                                { username: userQueryCondition.username },
+                                { username: { $in: usernamesInGroups } }
+                            ]
+                        };
+                    } else {
+                        userQueryCondition.username = { $in: usernamesInGroups };
+                    }
+                }
+            }
+
+            usersPromise = User.find(userQueryCondition)
+                .select('username user_profile_image _id')
+                .limit(10);
+        }
+
+        // --- חיפוש קבוצות ---
+        if (filter === 'all' || filter === 'groups') {
+            let groupQueryCondition = {};
+
+            // חיפוש לפי שם קבוצה כללי (q) אם קיים
+            if (q) {
+                groupQueryCondition.group_name = { $regex: q, $options: 'i' };
+            }
+
+            // אם הוגדר חיפוש לפי מנהל (admin)
+            if (admin) {
+                groupQueryCondition.admin = { $regex: admin, $options: 'i' };
+            }
+
+            groupsPromise = Group.find(groupQueryCondition)
+                .select('group_name admin members')
+                .limit(10);
+        }
 
         const [users, groups] = await Promise.all([usersPromise, groupsPromise]);
 
