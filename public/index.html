@@ -44,7 +44,7 @@
                     התחברות באמצעות פייסבוק
                 </a>
                 
-                <a href="#" class="outline-btn create-btn">צרי חשבון חדש</a>
+                <a href="#" class="outline-btn create-btn" data-bs-toggle="modal" data-bs-target="#registerModal">צרו חשבון חדש</a>
 
                 <img src="media/icons/meta_logo.svg" class="meta-logo" alt="Meta">
             </div>
@@ -76,6 +76,35 @@
         <span dir="ltr">© 2026 Instagram from Meta</span>
     </div>
 </div>
+
+
+<!-- Register Modal -->
+<div class="modal fade" id="registerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 12px; padding: 10px;">
+            <div class="modal-header" style="border-bottom: none;">
+                <h5 class="modal-title w-100 text-center font-weight-bold">יצירת חשבון חדש</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="registerForm">
+                    <input type="text" id="regUsername" class="custom-input" placeholder="שם משתמש (באנגלית)" required>
+                    <input type="email" id="regEmail" class="custom-input" placeholder="דוא''ל" required>
+                    <input type="password" id="regPassword" class="custom-input" placeholder="סיסמה (לפחות 9 תווים, אותיות ומספרים)" required>
+                    
+                    <div id="registerError" class="error-message"></div>
+                    
+                    <button type="submit" class="login-btn mt-3" style="background-color: #0095f6;">הרשמה</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- חובה כדי שהפופ-אפ יפתח וייסגר -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+
 
 <script src="script.js"></script>
 </body>

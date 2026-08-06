@@ -118,7 +118,7 @@ body.dark-mode .gif-comment-btn:hover { color: #fff; }
 .best-day-btn {
     position: fixed;
     top: 20px;
-    left: 20px; /* שנה ל- right: 20px אם אתה מעדיף אותו בצד ימין */
+    left: 20px; 
     background-color: #1877f2;
     color: white;
     border: none;
@@ -127,7 +127,7 @@ body.dark-mode .gif-comment-btn:hover { color: #fff; }
     font-weight: bold;
     font-family: inherit;
     cursor: pointer;
-    z-index: 9999; /* דואג שזה יופיע מעל כל הפוסטים */
+    z-index: 9999; 
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     transition: background-color 0.3s;
 }

@@ -703,3 +703,140 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+    // לוגיקת פופ-אפ הגדרות
+    const settingsBtn = document.getElementById("settings-btn");
+    const settingsModal = document.getElementById("settingsModal");
+    const closeSettings = document.getElementById("closeSettings");
+    const deleteAccountBtn = document.getElementById("deleteAccountBtn");
+
+    if (settingsBtn && settingsModal) {
+        settingsBtn.addEventListener("click", () => {
+            settingsModal.style.display = "flex";
+        });
+
+        closeSettings.addEventListener("click", () => {
+            settingsModal.style.display = "none";
+        });
+
+        // סגירה בלחיצה מחוץ לחלון
+        window.addEventListener("click", (e) => {
+            if (e.target === settingsModal) {
+                settingsModal.style.display = "none";
+            }
+        });
+    }
+
+    // --- לוגיקת עדכון שם משתמש ---
+    const updateUsernameBtn = document.getElementById("updateUsernameBtn");
+    const newUsernameInput = document.getElementById("newUsernameInput");
+
+    if (updateUsernameBtn && newUsernameInput) {
+        updateUsernameBtn.addEventListener("click", () => {
+            const newUsername = newUsernameInput.value.trim();
+            
+            if (newUsername === "") {
+                alert("אנא הזן שם משתמש חדש.");
+                return;
+            }
+
+            fetch('/update-username', {
+                method: 'PUT', // שיטת PUT מיועדת לעדכון נתונים קיימים
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ newUsername: newUsername })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("שם המשתמש עודכן בהצלחה ל: " + newUsername);
+                    newUsernameInput.value = ""; // מאפסים את השדה
+                    
+                    // אופציונלי: סגירת הפופ-אפ אוטומטית אחרי העדכון
+                    document.getElementById("settingsModal").style.display = "none";
+                } else {
+                    alert("שגיאה: " + data.message);
+                }
+            })
+            .catch(err => console.error("Error updating username:", err));
+        });
+    }
+
+    // בקשת מחיקה לשרת
+    if (deleteAccountBtn) {
+        deleteAccountBtn.addEventListener("click", () => {
+            const isConfirmed = confirm("האם אתה בטוח שברצונך למחוק את החשבון? פעולה זו תמחק את המשתמש שלך לתמיד.");
+            
+            if (isConfirmed) {
+                fetch('/delete-account', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("החשבון נמחק בהצלחה. נתגעגע!");
+                        window.location.href = "/"; // החזרה לעמוד ההתחברות
+                    } else {
+                        alert("שגיאה במחיקת החשבון: " + data.message);
+                    }
+                })
+                .catch(err => console.error("Error deleting account:", err));
+            }
+        });
+    }
+
+
+
+    // --- לוגיקת חיפוש משתמשים בזמן אמת ---
+    const openUserSearchBtn = document.getElementById("openUserSearchBtn"); // הכפתור החדש
+    const userSearchModal = document.getElementById("userSearchModal");
+    const closeUserSearch = document.getElementById("closeUserSearch");
+    const liveUserSearchInput = document.getElementById("liveUserSearchInput");
+    const userSearchResults = document.getElementById("userSearchResults");
+
+    if (openUserSearchBtn && userSearchModal) {
+        // פתיחת וסגירת החלון דרך הכפתור השמאלי התחתון
+        openUserSearchBtn.addEventListener("click", () => userSearchModal.style.display = "flex");
+        closeUserSearch.addEventListener("click", () => userSearchModal.style.display = "none");
+
+        // האזנה להקלדה בזמן אמת
+        liveUserSearchInput.addEventListener("input", (e) => {
+            const query = e.target.value.trim();
+
+            if (query.length === 0) {
+                userSearchResults.innerHTML = "";
+                return;
+            }
+
+            fetch(`/search-users?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                userSearchResults.innerHTML = ""; 
+                
+                if (data.success && data.users.length > 0) {
+                    data.users.forEach(user => {
+                        userSearchResults.innerHTML += `
+                            <div class="user-row mt-3" style="border-bottom: 1px solid #efefef; padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                                <div class="d-flex align-items-center">
+                                    <img src="${user.user_profile_image}" class="suggested-profile-img" alt="${user.username}" style="margin-left: 10px;">
+                                    <div class="fw-bold small">${user.username}</div>
+                                </div>
+                                <button class="colorful-btn" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer;" onclick="addToGroupPreview('${user.username}')">הוסף לקבוצה</button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    userSearchResults.innerHTML = "<p class='text-muted mt-3 text-center'>לא נמצאו משתמשים.</p>";
+                }
+            })
+            .catch(err => console.error("Error searching users:", err));
+        });
+    }
+
+    // פונקציה זמנית להדגמת הוספה לקבוצה
+    window.addToGroupPreview = function(username) {
+        alert("הכנה לשלב הבא: כאן נפתח תפריט בחירת קבוצה עבור המשתמש " + username);
+    }
+});
+
