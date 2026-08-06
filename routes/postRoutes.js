@@ -12,7 +12,7 @@ router.get('/api/posts', postController.getFeed);
 router.post('/api/posts', upload.single('mediaFile'), postController.createPost); // Use multer middleware to handle file upload to MongoDB GridFS
 router.post('/api/posts/delete', postController.deletePost);
 router.get('/api/gifs', postController.searchGifs);
-
+router.get('/statistics/top-users', postController.getTopActiveUsers);
 router.post('/api/facebook/post', postController.postToFacebook);
 
 // File retrieval route to stream media from MongoDB GridFS back to the frontend

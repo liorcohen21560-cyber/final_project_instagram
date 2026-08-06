@@ -249,5 +249,26 @@ exports.getGroupMembers = async (req, res) => {
     }
 };
 
+exports.getGroupStatistics = async (req, res) => {
+    try {
+   
+        const groupStats = await Group.aggregate([
+            {
+                $project: {
+                    _id: 0,
+                    groupName: "$group_name",
+                    memberCount: { $size: "$members" } 
+                }
+            },
+            {
+                $sort: { memberCount: -1 } // מיון מהגדול לקטן
+            }
+        ]);
 
+        return res.status(200).json({ success: true, data: groupStats });
+    } catch (error) {
+        console.error("Statistics Error:", error);
+        return res.status(500).json({ success: false, message: "שגיאה בשליפת נתונים סטטיסטיים." });
+    }
+};
 
