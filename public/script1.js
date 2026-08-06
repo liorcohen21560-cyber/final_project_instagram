@@ -788,19 +788,29 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 
-    // --- לוגיקת חיפוש משתמשים בזמן אמת ---
-    const openUserSearchBtn = document.getElementById("openUserSearchBtn"); // הכפתור החדש
+    // --- לוגיקת חיפוש משולב (משתמשים וקבוצות) ---
+    const openUserSearchBtn = document.getElementById("openUserSearchBtn"); 
     const userSearchModal = document.getElementById("userSearchModal");
     const closeUserSearch = document.getElementById("closeUserSearch");
     const liveUserSearchInput = document.getElementById("liveUserSearchInput");
     const userSearchResults = document.getElementById("userSearchResults");
+    
+    const groupMembersModal = document.getElementById("groupMembersModal");
+    const closeGroupMembers = document.getElementById("closeGroupMembers");
 
     if (openUserSearchBtn && userSearchModal) {
-        // פתיחת וסגירת החלון דרך הכפתור השמאלי התחתון
         openUserSearchBtn.addEventListener("click", () => userSearchModal.style.display = "flex");
         closeUserSearch.addEventListener("click", () => userSearchModal.style.display = "none");
+        
+        if(closeGroupMembers) {
+            closeGroupMembers.addEventListener("click", () => groupMembersModal.style.display = "none");
+        }
 
-        // האזנה להקלדה בזמן אמת
+        window.addEventListener("click", (e) => {
+            if (e.target === userSearchModal) userSearchModal.style.display = "none";
+            if (e.target === groupMembersModal) groupMembersModal.style.display = "none";
+        });
+
         liveUserSearchInput.addEventListener("input", (e) => {
             const query = e.target.value.trim();
 
@@ -809,34 +819,287 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
-            fetch(`/search-users?q=${encodeURIComponent(query)}`)
+            fetch(`/search-all?q=${encodeURIComponent(query)}`)
             .then(response => response.json())
             .then(data => {
                 userSearchResults.innerHTML = ""; 
                 
-                if (data.success && data.users.length > 0) {
-                    data.users.forEach(user => {
-                        userSearchResults.innerHTML += `
-                            <div class="user-row mt-3" style="border-bottom: 1px solid #efefef; padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-                                <div class="d-flex align-items-center">
-                                    <img src="${user.user_profile_image}" class="suggested-profile-img" alt="${user.username}" style="margin-left: 10px;">
-                                    <div class="fw-bold small">${user.username}</div>
+                if (data.success) {
+                    // הצגת משתמשים
+                    if (data.users.length > 0) {
+                        userSearchResults.innerHTML += `<div class="fw-bold mb-2 mt-2" style="color: #737373;">משתמשים</div>`;
+                        data.users.forEach(user => {
+                            userSearchResults.innerHTML += `
+                                <div class="user-row mb-2" style="border-bottom: 1px solid #efefef; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                                    <div class="d-flex align-items-center">
+                                        <img src="${user.user_profile_image}" class="suggested-profile-img" alt="${user.username}" style="margin-left: 10px;">
+                                        <div class="fw-bold small">${user.username}</div>
+                                    </div>
+                                    <button class="colorful-btn" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer;" onclick="addToGroupPreview('${user.username}')">הוסף לקבוצה</button>
                                 </div>
-                                <button class="colorful-btn" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer;" onclick="addToGroupPreview('${user.username}')">הוסף לקבוצה</button>
-                            </div>
-                        `;
-                    });
-                } else {
-                    userSearchResults.innerHTML = "<p class='text-muted mt-3 text-center'>לא נמצאו משתמשים.</p>";
+                            `;
+                        });
+                    }
+
+                    // הצגת קבוצות
+                    if (data.groups.length > 0) {
+                        userSearchResults.innerHTML += `<div class="fw-bold mb-2 mt-3" style="color: #737373;">קבוצות</div>`;
+                        data.groups.forEach(group => {
+                            userSearchResults.innerHTML += `
+                                <div class="user-row mb-2" style="border-bottom: 1px solid #efefef; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="showGroupMembers('${group.group_name}')">
+                                    <div class="d-flex align-items-center">
+                                        <div style="width: 32px; height: 32px; border-radius: 50%; background: #e0e0e0; display: flex; justify-content: center; align-items: center; margin-left: 10px; font-size: 16px;">👥</div>
+                                        <div>
+                                            <div class="fw-bold small">${group.group_name}</div>
+                                            <div class="text-muted" style="font-size: 11px;">${group.members.length} חברים</div>
+                                        </div>
+                                    </div>
+                                    <span style="font-size: 12px; color: #0095f6;">הצג חברים</span>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    if (data.users.length === 0 && data.groups.length === 0) {
+                        userSearchResults.innerHTML = "<p class='text-muted mt-3 text-center'>לא נמצאו תוצאות.</p>";
+                    }
                 }
             })
-            .catch(err => console.error("Error searching users:", err));
+            .catch(err => console.error("Error searching:", err));
         });
     }
 
+    // פונקציה חדשה שמושכת את רשימת חברי הקבוצה מהשרת ומציגה אותם
+    window.showGroupMembers = function(groupName) {
+        fetch(`/group-members/${encodeURIComponent(groupName)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById("groupMembersTitle").textContent = `חברים ב-${groupName}`;
+                const list = document.getElementById("groupMembersList");
+                list.innerHTML = "";
+                
+                data.members.forEach(member => {
+                    const isAdmin = member.username === data.admin ? `<span style="color: #f09433; font-size: 12px; margin-right: 5px;">(מנהל) 👑</span>` : "";
+                    list.innerHTML += `
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="${member.user_profile_image}" style="width: 35px; height: 35px; border-radius: 50%; margin-left: 10px; object-fit: cover;">
+                            <div class="fw-bold small">${member.username} ${isAdmin}</div>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById("groupMembersModal").style.display = "flex";
+            } else {
+                alert("שגיאה בטעינת חברי הקבוצה.");
+            }
+        })
+        .catch(err => console.error("Error fetching group members:", err));
+    };
+
     // פונקציה זמנית להדגמת הוספה לקבוצה
+    // משתנה שישמור את שם המשתמש שאנחנו רוצים להוסיף באותו רגע
+    let currentTargetUser = ""; 
+
+    // הפונקציה שנקראת כשלוחצים על הכפתור בתוצאות החיפוש
     window.addToGroupPreview = function(username) {
-        alert("הכנה לשלב הבא: כאן נפתח תפריט בחירת קבוצה עבור המשתמש " + username);
+        currentTargetUser = username;
+        document.getElementById("targetUsernameDisplay").textContent = username;
+        document.getElementById("addToGroupModal").style.display = "flex";
+    };
+
+    // --- לוגיקת אישור ושליחת ההוספה לקבוצה ---
+    const addToGroupModal = document.getElementById("addToGroupModal");
+    const closeAddToGroup = document.getElementById("closeAddToGroup");
+    const submitAddToGroupBtn = document.getElementById("submitAddToGroupBtn");
+    const groupNameToAddInput = document.getElementById("groupNameToAddInput");
+    const addToGroupError = document.getElementById("addToGroupError");
+
+    if (closeAddToGroup && addToGroupModal) {
+        closeAddToGroup.addEventListener("click", () => addToGroupModal.style.display = "none");
+        window.addEventListener("click", (e) => {
+            if (e.target === addToGroupModal) addToGroupModal.style.display = "none";
+        });
     }
+
+    if (submitAddToGroupBtn) {
+        submitAddToGroupBtn.addEventListener("click", () => {
+            const groupName = groupNameToAddInput.value.trim();
+
+            if (!groupName) {
+                addToGroupError.textContent = "אנא הקלד את שם הקבוצה.";
+                addToGroupError.style.display = "block";
+                return;
+            }
+
+            fetch('/add-user-to-group', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targetUsername: currentTargetUser, groupName: groupName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("המשתמש " + currentTargetUser + " צורף בהצלחה לקבוצה!");
+                    addToGroupModal.style.display = "none";
+                    groupNameToAddInput.value = "";
+                    addToGroupError.style.display = "none";
+                } else {
+                    addToGroupError.textContent = data.message;
+                    addToGroupError.style.display = "block";
+                }
+            })
+            .catch(err => console.error("Error adding user to group:", err));
+        });
+    }
+
+
+
+
+
+    // --- לוגיקת יצירת קבוצה חדשה ---
+    const openCreateGroupBtn = document.getElementById("openCreateGroupBtn");
+    const createGroupModal = document.getElementById("createGroupModal");
+    const closeCreateGroup = document.getElementById("closeCreateGroup");
+    const submitCreateGroupBtn = document.getElementById("submitCreateGroupBtn");
+    const newGroupNameInput = document.getElementById("newGroupNameInput");
+    const createGroupError = document.getElementById("createGroupError");
+
+    if (openCreateGroupBtn && createGroupModal) {
+        // פתיחה וסגירה של החלון
+        openCreateGroupBtn.addEventListener("click", () => createGroupModal.style.display = "flex");
+        closeCreateGroup.addEventListener("click", () => createGroupModal.style.display = "none");
+        window.addEventListener("click", (e) => {
+            if (e.target === createGroupModal) createGroupModal.style.display = "none";
+        });
+
+        // שליחת הבקשה ליצירת קבוצה
+        submitCreateGroupBtn.addEventListener("click", () => {
+            const groupName = newGroupNameInput.value.trim();
+            
+            if (!groupName) {
+                createGroupError.textContent = "אנא הזן שם לקבוצה.";
+                createGroupError.style.display = "block";
+                return;
+            }
+
+            fetch('/create-group', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groupName: groupName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("הקבוצה " + groupName + " נוצרה בהצלחה!");
+                    createGroupModal.style.display = "none";
+                    newGroupNameInput.value = "";
+                    createGroupError.style.display = "none";
+                } else {
+                    createGroupError.textContent = data.message;
+                    createGroupError.style.display = "block";
+                }
+            })
+            .catch(err => console.error("Error creating group:", err));
+        });
+    }
+
+
+    // --- לוגיקת מחיקת קבוצה ---
+    const openDeleteGroupBtn = document.getElementById("openDeleteGroupBtn");
+    const deleteGroupModal = document.getElementById("deleteGroupModal");
+    const closeDeleteGroup = document.getElementById("closeDeleteGroup");
+    const submitDeleteGroupBtn = document.getElementById("submitDeleteGroupBtn");
+    const deleteGroupNameInput = document.getElementById("deleteGroupNameInput");
+    const deleteGroupError = document.getElementById("deleteGroupError");
+
+    if (openDeleteGroupBtn && deleteGroupModal) {
+        openDeleteGroupBtn.addEventListener("click", () => deleteGroupModal.style.display = "flex");
+        closeDeleteGroup.addEventListener("click", () => deleteGroupModal.style.display = "none");
+        window.addEventListener("click", (e) => {
+            if (e.target === deleteGroupModal) deleteGroupModal.style.display = "none";
+        });
+
+        submitDeleteGroupBtn.addEventListener("click", () => {
+            const groupName = deleteGroupNameInput.value.trim();
+
+            if (!groupName) {
+                deleteGroupError.textContent = "אנא הזן את שם הקבוצה.";
+                deleteGroupError.style.display = "block";
+                return;
+            }
+
+            if(confirm("האם אתה בטוח שברצונך למחוק את הקבוצה '" + groupName + "'? פעולה זו היא סופית.")) {
+                fetch('/delete-group', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ groupName: groupName })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("הקבוצה נמחקה בהצלחה.");
+                        deleteGroupModal.style.display = "none";
+                        deleteGroupNameInput.value = "";
+                        deleteGroupError.style.display = "none";
+                    } else {
+                        deleteGroupError.textContent = data.message;
+                        deleteGroupError.style.display = "block";
+                    }
+                })
+                .catch(err => console.error("Error deleting group:", err));
+            }
+        });
+    }
+
+
+    // --- לוגיקת עדכון שם קבוצה ---
+    const openUpdateGroupBtn = document.getElementById("openUpdateGroupBtn");
+    const updateGroupModal = document.getElementById("updateGroupModal");
+    const closeUpdateGroup = document.getElementById("closeUpdateGroup");
+    const submitUpdateGroupBtn = document.getElementById("submitUpdateGroupBtn");
+    const currentGroupNameInput = document.getElementById("currentGroupNameInput");
+    const newGroupNameUpdateInput = document.getElementById("newGroupNameUpdateInput");
+    const updateGroupError = document.getElementById("updateGroupError");
+
+    if (openUpdateGroupBtn && updateGroupModal) {
+        openUpdateGroupBtn.addEventListener("click", () => updateGroupModal.style.display = "flex");
+        closeUpdateGroup.addEventListener("click", () => updateGroupModal.style.display = "none");
+        window.addEventListener("click", (e) => {
+            if (e.target === updateGroupModal) updateGroupModal.style.display = "none";
+        });
+
+        submitUpdateGroupBtn.addEventListener("click", () => {
+            const currentName = currentGroupNameInput.value.trim();
+            const newName = newGroupNameUpdateInput.value.trim();
+
+            if (!currentName || !newName) {
+                updateGroupError.textContent = "אנא מלא את כל השדות.";
+                updateGroupError.style.display = "block";
+                return;
+            }
+
+            fetch('/update-group-name', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ currentName, newName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("שם הקבוצה עודכן בהצלחה ל: " + newName);
+                    updateGroupModal.style.display = "none";
+                    currentGroupNameInput.value = "";
+                    newGroupNameUpdateInput.value = "";
+                    updateGroupError.style.display = "none";
+                } else {
+                    updateGroupError.textContent = data.message;
+                    updateGroupError.style.display = "block";
+                }
+            })
+            .catch(err => console.error("Error updating group:", err));
+        });
+    }
+    
 });
 

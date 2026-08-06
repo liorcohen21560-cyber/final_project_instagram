@@ -308,25 +308,97 @@
     </div>
 
         
-    <!-- כפתור חיפוש משתמשים בצד שמאל למטה -->
+
     
-    <button id="openUserSearchBtn" class="colorful-btn" style="position: fixed; bottom: 20px; left: 20px; z-index: 9999; padding: 10px 15px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer;">חיפוש משתמשים 🔍</button>
     
-    <!-- 2. החלון הקופץ של החיפוש (שמוסתר בברירת מחדל) -->
+    <button id="openUserSearchBtn" class="colorful-btn" style="position: fixed; bottom: 20px; left: 20px; z-index: 9999; padding: 10px 15px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer;">חיפוש משתמשים וקבוצות 🔍</button>
+
+    <!-- 2. חלון חיפוש משולב (Live Search) -->
     <div id="userSearchModal" class="search-modal-overlay modal-overlay">
         <div class="modal-content" style="max-width: 450px; max-height: 80vh; display: flex; flex-direction: column;">
             <span class="close-popup" id="closeUserSearch">&times;</span>
-            <h5 class="mb-3 fw-bold">חיפוש משתמשים</h5>
-            
-            <!-- שורת החיפוש -->
-            <input type="text" id="liveUserSearchInput" class="search-input-box mb-3" placeholder="הקלד/י שם משתמש לחיפוש...">
-            
-            <!-- כאן יופיעו התוצאות -->
+            <h5 class="mb-3 fw-bold">חיפוש</h5>
+            <input type="text" id="liveUserSearchInput" class="search-input-box mb-3" placeholder="חפש/י משתמשים או קבוצות...">
             <div id="userSearchResults" style="overflow-y: auto; flex-grow: 1; text-align: right;"></div>
         </div>
     </div>
 
-    
+    <!-- 3. מודל חדש: הצגת חברי הקבוצה -->
+    <div id="groupMembersModal" class="search-modal-overlay modal-overlay" style="z-index: 10000;">
+        <div class="modal-content" style="max-width: 400px; max-height: 60vh; display: flex; flex-direction: column;">
+            <span class="close-popup" id="closeGroupMembers">&times;</span>
+            <h5 class="mb-3 fw-bold" id="groupMembersTitle">חברי הקבוצה</h5>
+            <div id="groupMembersList" style="overflow-y: auto; flex-grow: 1; text-align: right; padding-top: 10px;">
+                <!-- רשימת החברים תוזרק לכאן -->
+            </div>
+        </div>
+    </div>
+
+   
+    <button id="openCreateGroupBtn" class="colorful-btn" style="position: fixed; bottom: 70px; left: 20px; z-index: 9999; padding: 10px 15px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer;">יצירת קבוצה 👥</button>
+
+    <!-- מודל יצירת קבוצה -->
+    <div id="createGroupModal" class="search-modal-overlay modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="close-popup" id="closeCreateGroup">&times;</span>
+            <h5 class="mb-3 fw-bold">יצירת קבוצה חדשה</h5>
+            <input type="text" id="newGroupNameInput" class="search-input-box mb-3" placeholder="הכנס את שם הקבוצה...">
+            <div id="createGroupError" class="error-message"></div>
+            <button id="submitCreateGroupBtn" class="colorful-btn w-100 mt-2" style="background: #0095f6;">צור קבוצה</button>
+        </div>
+    </div>
+
+
+    <!-- כפתור צף למחיקת קבוצה -->
+    <button id="openDeleteGroupBtn" class="colorful-btn" style="position: fixed; bottom: 120px; left: 20px; z-index: 9999; padding: 10px 15px; border-radius: 8px; font-weight: bold; background: #ed4956; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer;">מחיקת קבוצה 🗑️</button>
+
+    <!-- מודל מחיקת קבוצה -->
+    <div id="deleteGroupModal" class="search-modal-overlay modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="close-popup" id="closeDeleteGroup">&times;</span>
+            <h5 class="mb-3 fw-bold">מחיקת קבוצה</h5>
+            <p style="font-size: 14px; color: #737373;">הזן את שם הקבוצה שברצונך למחוק. שים לב: רק מנהל הקבוצה יכול לבצע פעולה זו.</p>
+            <input type="text" id="deleteGroupNameInput" class="search-input-box mb-3" placeholder="שם הקבוצה למחיקה...">
+            <div id="deleteGroupError" class="error-message"></div>
+            <button id="submitDeleteGroupBtn" class="colorful-btn w-100 mt-2" style="background: #ed4956;">מחק קבוצה לתמיד</button>
+        </div>
+    </div>
+
+
+
+        <!-- כפתור צף לעדכון שם קבוצה -->
+    <button id="openUpdateGroupBtn" class="colorful-btn" style="position: fixed; bottom: 170px; left: 20px; z-index: 9999; padding: 10px 15px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer;">עדכון קבוצה ✏️</button>
+
+    <!-- מודל לעדכון שם קבוצה -->
+    <div id="updateGroupModal" class="search-modal-overlay modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="close-popup" id="closeUpdateGroup">&times;</span>
+            <h5 class="mb-3 fw-bold">עדכון שם קבוצה</h5>
+            <p style="font-size: 14px; color: #737373;">רק מנהל הקבוצה יכול לשנות את שמה.</p>
+            
+            <input type="text" id="currentGroupNameInput" class="search-input-box mb-2" placeholder="שם הקבוצה הנוכחי...">
+            <input type="text" id="newGroupNameUpdateInput" class="search-input-box mb-3" placeholder="שם הקבוצה החדש...">
+            
+            <div id="updateGroupError" class="error-message"></div>
+            <button id="submitUpdateGroupBtn" class="colorful-btn w-100 mt-2" style="background: #0095f6;">עדכן שם קבוצה</button>
+        </div>
+    </div>
+
+
+    <!-- מודל הוספת משתמש לקבוצה -->
+    <div id="addToGroupModal" class="search-modal-overlay modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="close-popup" id="closeAddToGroup">&times;</span>
+            <h5 class="mb-3 fw-bold">הוספת משתמש לקבוצה</h5>
+            <p style="font-size: 14px; color: #737373;">לאיזו קבוצה תרצה לצרף את <strong id="targetUsernameDisplay"></strong>?</p>
+            
+            <input type="text" id="groupNameToAddInput" class="search-input-box mb-3" placeholder="הקלד את שם הקבוצה שלך...">
+            <div id="addToGroupError" class="error-message"></div>
+            <button id="submitAddToGroupBtn" class="colorful-btn w-100 mt-2" style="background: #0095f6;">צרף לקבוצה</button>
+        </div>
+    </div>
+
+
     <script src="script1.js?v=3"></script>
 </body>
 </html>
