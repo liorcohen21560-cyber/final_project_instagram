@@ -792,14 +792,18 @@ document.addEventListener("DOMContentLoaded", function () {
     const openUserSearchBtn = document.getElementById("openUserSearchBtn"); 
     const userSearchModal = document.getElementById("userSearchModal");
     const closeUserSearch = document.getElementById("closeUserSearch");
-    const liveUserSearchInput = document.getElementById("liveUserSearchInput");
-    const userSearchResults = document.getElementById("userSearchResults");
     
+    const userOrGroupFilter = document.getElementById("UserOrGroupFilter");
+    const liveUserSearchInput = document.getElementById("liveUserSearchInput");
+    const adminSearchInput = document.getElementById("adminSearchInput");
+    const groupSearchInput = document.getElementById("groupSearchInput");
+
+    const applyUserSearchBtn = document.getElementById("applyUserSearchBtn");
+    const resetUserSearchBtn = document.getElementById("resetUserSearchBtn");
+    const userSearchResults = document.getElementById("userSearchResults");
+
     const groupMembersModal = document.getElementById("groupMembersModal");
     const closeGroupMembers = document.getElementById("closeGroupMembers");
-
-
-
 
 
    function drawGroupMembersGraph() {
@@ -896,6 +900,28 @@ document.addEventListener("DOMContentLoaded", function () {
         .catch(err => console.error("Error fetching graph data:", err));
     }
 
+    // Function to handle conditional input visibility based on dropdown selection
+    function updateInputVisibility() {
+        const filterValue = userOrGroupFilter.value;
+    
+        if (filterValue === "groups") {
+            adminSearchInput.style.display = "block";
+            groupSearchInput.style.display = "none";
+        } else if (filterValue === "users") {
+            adminSearchInput.style.display = "none";
+            groupSearchInput.style.display = "block";
+        } else { // "all"
+            adminSearchInput.style.display = "none";
+            groupSearchInput.style.display = "none";
+        }
+    }
+
+    // Run visibility check on dropdown change
+    if (userOrGroupFilter) {
+        userOrGroupFilter.addEventListener("change", updateInputVisibility);
+        updateInputVisibility(); // Initial check on load
+    }
+
     if (openUserSearchBtn && userSearchModal) {
        openUserSearchBtn.addEventListener("click", () => {
             userSearchModal.style.display = "flex";
@@ -916,63 +942,86 @@ document.addEventListener("DOMContentLoaded", function () {
             if (e.target === groupMembersModal) groupMembersModal.style.display = "none";
         });
 
-        liveUserSearchInput.addEventListener("input", (e) => {
-            const query = e.target.value.trim();
 
-            if (query.length === 0) {
-                userSearchResults.innerHTML = "";
-                return;
-            }
 
-            fetch(`/search-all?q=${encodeURIComponent(query)}`)
-            .then(response => response.json())
-            .then(data => {
-                userSearchResults.innerHTML = ""; 
-                
-                if (data.success) {
-                    // הצגת משתמשים
-                    if (data.users.length > 0) {
-                        userSearchResults.innerHTML += `<div class="fw-bold mb-2 mt-2" style="color: #737373;">משתמשים</div>`;
-                        data.users.forEach(user => {
-                            userSearchResults.innerHTML += `
-                                <div class="user-row mb-2" style="border-bottom: 1px solid #efefef; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                                    <div class="d-flex align-items-center">
-                                        <img src="${user.user_profile_image}" class="suggested-profile-img" alt="${user.username}" style="margin-left: 10px;">
-                                        <div class="fw-bold small">${user.username}</div>
-                                    </div>
-                                    <button class="colorful-btn" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer;" onclick="addToGroupPreview('${user.username}')">הוסף לקבוצה</button>
-                                </div>
-                            `;
-                        });
-                    }
+        // Trigger search on button click instead of live input
+        if (applyUserSearchBtn) {
+            applyUserSearchBtn.addEventListener("click", () => {
+                const filter = userOrGroupFilter ? userOrGroupFilter.value : "all";
+                const query = liveUserSearchInput ? liveUserSearchInput.value.trim() : "";
+                const adminQuery = adminSearchInput ? adminSearchInput.value.trim() : "";
+                const groupQuery = groupSearchInput ? groupSearchInput.value.trim() : "";
 
-                    // הצגת קבוצות
-                    if (data.groups.length > 0) {
-                        userSearchResults.innerHTML += `<div class="fw-bold mb-2 mt-3" style="color: #737373;">קבוצות</div>`;
-                        data.groups.forEach(group => {
-                            userSearchResults.innerHTML += `
-                                <div class="user-row mb-2" style="border-bottom: 1px solid #efefef; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="showGroupMembers('${group.group_name}')">
-                                    <div class="d-flex align-items-center">
-                                        <div style="width: 32px; height: 32px; border-radius: 50%; background: #e0e0e0; display: flex; justify-content: center; align-items: center; margin-left: 10px; font-size: 16px;">👥</div>
-                                        <div>
-                                            <div class="fw-bold small">${group.group_name}</div>
-                                            <div class="text-muted" style="font-size: 11px;">${group.members.length} חברים</div>
+                // Build query parameters dynamically
+                const params = new URLSearchParams();
+                params.append("filter", filter);
+                if (query) params.append("q", query);
+                if (adminQuery && filter === "groups") params.append("admin", adminQuery);
+                if (groupQuery && filter === "users") params.append("group", groupQuery);
+
+                fetch(`/search-all?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    userSearchResults.innerHTML = ""; 
+                    
+                    if (data.success) {
+                        // Display Users
+                        if (data.users && data.users.length > 0) {
+                            userSearchResults.innerHTML += `<div class="fw-bold mb-2 mt-2" style="color: #737373;">משתמשים</div>`;
+                            data.users.forEach(user => {
+                                userSearchResults.innerHTML += `
+                                    <div class="user-row mb-2" style="border-bottom: 1px solid #efefef; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                                        <div class="d-flex align-items-center">
+                                            <img src="${user.user_profile_image}" class="suggested-profile-img" alt="${user.username}" style="margin-left: 10px;">
+                                            <div class="fw-bold small">${user.username}</div>
                                         </div>
+                                        <button class="colorful-btn" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer;" onclick="addToGroupPreview('${user.username}')">הוסף לקבוצה</button>
                                     </div>
-                                    <span style="font-size: 12px; color: #0095f6;">הצג חברים</span>
-                                </div>
-                            `;
-                        });
-                    }
+                                `;
+                            });
+                        }
 
-                    if (data.users.length === 0 && data.groups.length === 0) {
-                        userSearchResults.innerHTML = "<p class='text-muted mt-3 text-center'>לא נמצאו תוצאות.</p>";
+                        // Display Groups
+                        if (data.groups && data.groups.length > 0) {
+                            userSearchResults.innerHTML += `<div class="fw-bold mb-2 mt-3" style="color: #737373;">קבוצות</div>`;
+                            data.groups.forEach(group => {
+                                userSearchResults.innerHTML += `
+                                    <div class="user-row mb-2" style="border-bottom: 1px solid #efefef; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="showGroupMembers('${group.group_name}')">
+                                        <div class="d-flex align-items-center">
+                                            <div style="width: 32px; height: 32px; border-radius: 50%; background: #e0e0e0; display: flex; justify-content: center; align-items: center; margin-left: 10px; font-size: 16px;">👥</div>
+                                            <div>
+                                                <div class="fw-bold small">${group.group_name}</div>
+                                                <div class="text-muted" style="font-size: 11px;">${group.members.length} חברים</div>
+                                            </div>
+                                        </div>
+                                        <span style="font-size: 12px; color: #0095f6;">הצג חברים</span>
+                                    </div>
+                                `;
+                            });
+                        }
+
+                        if ((!data.users || data.users.length === 0) && (!data.groups || data.groups.length === 0)) {
+                            userSearchResults.innerHTML = "<p class='text-muted mt-3 text-center'>לא נמצאו תוצאות.</p>";
+                        }
                     }
-                }
-            })
-            .catch(err => console.error("Error searching:", err));
-        });
+                })
+                .catch(err => console.error("Error searching:", err));
+            });
+        }
+
+        // Reset search inputs
+        if (resetUserSearchBtn) {
+            resetUserSearchBtn.addEventListener("click", () => {
+                liveUserSearchInput.value = "";
+                if (adminSearchInput) adminSearchInput.value = "";
+                if (groupSearchInput) groupSearchInput.value = "";
+                if (userOrGroupFilter) userOrGroupFilter.value = "all";
+                updateInputVisibility();
+                userSearchResults.innerHTML = "";
+            });
+        }
     }
+
 
     // פונקציה חדשה שמושכת את רשימת חברי הקבוצה מהשרת ומציגה אותם
     window.showGroupMembers = function(groupName) {

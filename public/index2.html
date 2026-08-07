@@ -326,7 +326,16 @@
         <div class="modal-content" style="max-width: 450px; max-height: 80vh; display: flex; flex-direction: column;">
             <span class="close-popup" id="closeUserSearch">&times;</span>
             <h5 class="mb-3 fw-bold">חיפוש</h5>
-            <input type="text" id="liveUserSearchInput" class="search-input-box mb-3" placeholder="חפש/י משתמשים או קבוצות...">
+            <select id="UserOrGroupFilter">
+                <option value="all">משתמשים וקבוצות</option>
+                <option value="users">משתמשים</option>
+                <option value="groups">קבוצות</option>
+            </select>
+            <input type="text" id="liveUserSearchInput" class="search-input-box mb-3" placeholder="חפש/י לפי שם...">
+            <input type="text" id="adminSearchInput" class="search-input-box mb-3" placeholder="חפש/י לפי שם מנהל הקבוצה...">
+            <input type="text" id="groupSearchInput" class="search-input-box mb-3" placeholder="חפש/י לפי שם קבוצה...">
+            <button type="button" id="applyUserSearchBtn" class="reset-search-btn colorful-btn">החל חיפוש</button>
+            <button type="button" id="resetUserSearchBtn" class="reset-search-btn colorful-btn">אפס חיפוש</button>
             <div id="userSearchResults" style="overflow-y: auto; flex-grow: 1; text-align: right;"></div>
 
 
