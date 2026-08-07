@@ -1255,6 +1255,124 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
     
+
+    let myMap = null;
+    let markersArray = [];
+    
+    const openMapBtn = document.getElementById("openMapBtn");
+    const mapModal = document.getElementById("mapModal");
+    const closeMap = document.getElementById("closeMap");
+
+    if (openMapBtn && mapModal) {
+        openMapBtn.addEventListener("click", () => {
+            mapModal.style.display = "flex";
+            
+            if (!myMap) {
+                myMap = new google.maps.Map(document.getElementById("photoMap"), {
+                    center: { lat: 32.0158, lng: 34.7744 }, 
+                    zoom: 13,
+                    mapTypeId: "roadmap",
+                    disableDefaultUI: false
+                });
+
+                loadMapMarkers();
+
+                myMap.addListener("click", (mapsMouseEvent) => {
+                    const lat = mapsMouseEvent.latLng.lat();
+                    const lng = mapsMouseEvent.latLng.lng();
+                    const placeName = prompt("הכנס שם למיקום החדש (לדוגמה: פארק, מסעדה):");
+                    
+                    if (placeName) {
+                        fetch('/locations', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name: placeName, lat: lat, lng: lng })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                loadMapMarkers(); 
+                            }
+                        });
+                    }
+                });
+            }
+            
+            setTimeout(() => { 
+                google.maps.event.trigger(myMap, "resize"); 
+                myMap.setCenter({ lat: 32.0158, lng: 34.7744 });
+            }, 200);
+        });
+
+        closeMap.addEventListener("click", () => mapModal.style.display = "none");
+    }
+
+    function loadMapMarkers() {
+        if (!myMap) return;
+        
+        markersArray.forEach(marker => marker.setMap(null));
+        markersArray = [];
+
+        fetch('/locations')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    data.data.forEach(loc => {
+                        const marker = new google.maps.Marker({
+                            position: { lat: loc.lat, lng: loc.lng },
+                            map: myMap,
+                            title: loc.name
+                        });
+                        
+                        const infoWindow = new google.maps.InfoWindow({
+                            content: `
+                                <div style="text-align: center; min-width: 120px;">
+                                    <strong style="font-size: 14px;">${loc.name}</strong><br>
+                                    <hr style="margin: 8px 0;">
+                                    <button onclick="editLocation('${loc._id}', '${loc.name}')" style="background:#0095f6; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px; margin-left: 5px;">ערוך</button>
+                                    <button onclick="deleteLocation('${loc._id}')" style="background:#ed4956; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">מחק</button>
+                                </div>
+                            `
+                        });
+
+                        marker.addListener("click", () => {
+                            infoWindow.open(myMap, marker);
+                        });
+
+                        markersArray.push(marker);
+                    });
+                }
+            });
+    }
+
+    window.editLocation = function(id, currentName) {
+        const newName = prompt("הכנס שם חדש למיקום:", currentName);
+        if (newName && newName !== currentName) {
+            fetch(`/locations/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ newName })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    loadMapMarkers();
+                }
+            });
+        }
+    };
+
+    window.deleteLocation = function(id) {
+        if (confirm("האם אתה בטוח שברצונך למחוק מיקום זה?")) {
+            fetch(`/locations/${id}`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) { loadMapMarkers(); }
+            });
+        }
+    };
+
+
 });
 
 function drawTopUsersGraph() {
