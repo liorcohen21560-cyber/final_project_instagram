@@ -9,6 +9,7 @@ const postController = require('../controllers/postController');
 const upload = multer({ storage: multer.memoryStorage() });
 
 router.get('/api/posts', postController.getFeed);
+router.get('/api/posts/my-posts', postController.getMyPosts);
 router.post('/api/posts', upload.single('mediaFile'), postController.createPost); // Use multer middleware to handle file upload to MongoDB GridFS
 router.post('/api/posts/delete', postController.deletePost);
 router.get('/api/gifs', postController.searchGifs);

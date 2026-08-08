@@ -5,25 +5,34 @@ const Post = require('../models/Post');
 
 exports.getFeed = async (req, res) => {
     try {
-        const posts = await postModel.getAllPosts();
+        const currentUsername = req.session ? req.session.username : null;
 
-        // Format posts so the frontend receives the correct user_profile_image from User collection
-        const formattedPosts = posts.map(post => {
-            const postObj = post.toObject ? post.toObject() : post;
-            
-            // If authorDetails was found via virtual populate, override the profile image
-            if (postObj.authorDetails && postObj.authorDetails.user_profile_image) {
-                postObj.user_profile_image = postObj.authorDetails.user_profile_image;
-            }
-            
-            return postObj;
-        });
+        if (!currentUsername) {
+            return res.status(401).json({ success: false, message: "Unauthorized. Please log in." });
+        }
+
+        const posts = await postModel.getAllPosts(currentUsername);
         
-        res.json(formattedPosts);
+        res.json(posts);
     } catch (error) {
         res.status(500).json({ success: false, message: "Server error fetching feed." });
     }
 };
+
+exports.getMyPosts = async (req, res) => {
+    try {
+        const currentUsername = req.session ? req.session.username : null;
+
+        if (!currentUsername) {
+            return res.status(401).json({ success: false, message: "Unauthorized. Please log in." });
+        }
+
+        const posts = await postModel.getUserOnlyPosts(currentUsername);
+        res.json(posts);
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Server error fetching my posts." });
+    }
+}
 
 exports.createPost = async (req, res) => {
     try {
