@@ -1,9 +1,11 @@
 const Group = require('../models/Group'); // ודא שהנתיב למודל הקבוצות נכון
 const User = require('../models/User');   // נצטרך גם את מודל המשתמש כדי לעדכן אותו
+const mongoose = require('mongoose');
+const { GridFSBucket } = require('mongodb');
 
 exports.createGroup = async (req, res) => {
     try {
-        // 1. אבטחה: וידוא משתמש מחובר
+        // אבטחה: וידוא משתמש מחובר
         if (!req.session || !req.session.username) {
             return res.status(401).json({ success: false, message: "עליך להתחבר כדי ליצור קבוצה." });
         }
@@ -15,23 +17,42 @@ exports.createGroup = async (req, res) => {
             return res.status(400).json({ success: false, message: "שם הקבוצה חסר." });
         }
 
-        // 2. בדיקה שהקבוצה לא קיימת כבר במערכת (כדי למנוע כפילויות)
+        // בדיקה שהקבוצה לא קיימת כבר במערכת (כדי למנוע כפילויות)
         const existingGroup = await Group.findOne({ group_name: groupName });
         if (existingGroup) {
             return res.status(400).json({ success: false, message: "קבוצה בשם זה כבר קיימת, אנא בחר שם אחר." });
         }
 
-        // 3. יצירת האובייקט החדש של הקבוצה
+        // טיפול בתמונת הפרופיל של הקבוצה עם GridFS
+        let groupProfileImage = 'media/profile-pictures/default_profile.jpg'; // תמונה ברירת מחדל
+        
+        if (req.file) {
+            const db = mongoose.connection.db;
+            const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
+            
+            // יצירת שם קובץ ייחודי
+            const filename = `group-${Date.now()}-${req.file.originalname}`;
+            
+            // העלאת ה-buffer של הקובץ ל-GridFS
+            const uploadStream = bucket.openUploadStream(filename);
+            uploadStream.end(req.file.buffer);
+            
+            // שמירת הנתיב שבו השרת יודע לשלוף את הקובץ דרך GridFS (תואם לנתיב הקבצים של הפוסטים שלך)
+            groupProfileImage = `/api/posts/file/${filename}`;
+        }
+
+        // יצירת האובייקט החדש של הקבוצה
         const newGroup = new Group({
             group_name: groupName,
             admin: currentUsername,
-            members: [currentUsername] // האדמין הוא אוטומטית גם חבר קבוצה
+            members: [currentUsername], // האדמין הוא אוטומטית גם חבר קבוצה
+            group_profile_image: groupProfileImage // שמירת נתיב התמונה במסד הנתונים
         });
 
-        // 4. שמירת הקבוצה ב-DB
+        // שמירת הקבוצה ב-DB
         await newGroup.save();
 
-        // 5. עדכון ה-User שמנהל את הקבוצה (הוספת שם הקבוצה למערכי הניהול והחברות שלו)
+        // עדכון ה-User שמנהל את הקבוצה (הוספת שם הקבוצה למערכי הניהול והחברות שלו)
         await User.updateOne(
             { username: currentUsername },
             { 
@@ -203,6 +224,95 @@ exports.addUserToGroup = async (req, res) => {
     }
 };
 
+exports.joinGroup = async (req, res) => {
+    try {
+        if (!req.session || !req.session.username) {
+            return res.status(401).json({ success: false, message: "עליך להתחבר כדי לבצע פעולה זו." });
+        }
+
+        const { groupName } = req.body;
+        const currentUsername = req.session.username;
+
+        if (!groupName) {
+            return res.status(400).json({ success: false, message: "חסר שם קבוצה." });
+        }
+
+        const group = await Group.findOne({ group_name: groupName });
+        if (!group) {
+            return res.status(404).json({ success: false, message: "הקבוצה המבוקשת לא נמצאה." });
+        }
+
+        if (group.members.includes(currentUsername)) {
+            return res.status(400).json({ success: false, message: "אתה כבר חבר בקבוצה זו." });
+        }
+
+        // Add user to group members
+        await Group.updateOne(
+            { group_name: groupName },
+            { $push: { members: currentUsername } }
+        );
+
+        // Add group to user's memberships
+        await User.updateOne(
+            { username: currentUsername },
+            { $push: { group_memberships: groupName } }
+        );
+
+        return res.status(200).json({ success: true, message: "הצטרפת לקבוצה בהצלחה." });
+
+    } catch (error) {
+        console.error("Join Group Error:", error);
+        return res.status(500).json({ success: false, message: "שגיאת שרת פנימית." });
+    }
+};
+
+exports.leaveGroup = async (req, res) => {
+    try {
+        if (!req.session || !req.session.username) {
+            return res.status(401).json({ success: false, message: "עליך להתחבר כדי לבצע פעולה זו." });
+        }
+
+        const groupName = req.body.groupName ? req.body.groupName.trim() : "";
+        const currentUsername = req.session.username.trim();
+
+        if (!groupName) {
+            return res.status(400).json({ success: false, message: "חסר שם קבוצה." });
+        }
+
+        const group = await Group.findOne({ group_name: groupName });
+        if (!group) {
+            return res.status(404).json({ success: false, message: "הקבוצה המבוקשת לא נמצאה." });
+        }
+
+        // Prevent admin from leaving their own group this way if needed, or allow it
+        if (group.admin === currentUsername) {
+            return res.status(400).json({ success: false, message: "מנהל הקבוצה אינו יכול לעזוב את הקבוצה." });
+        }
+
+        if (!group.members.includes(currentUsername)) {
+            return res.status(400).json({ success: false, message: "אינו חבר בקבוצה זו." });
+        }
+
+        // Remove user from group members
+        await Group.updateOne(
+            { group_name: groupName },
+            { $pull: { members: currentUsername } }
+        );
+
+        // Remove group from user's memberships
+        await User.updateOne(
+            { username: currentUsername },
+            { $pull: { group_memberships: groupName } }
+        );
+
+        return res.status(200).json({ success: true, message: "עזבת את הקבוצה בהצלחה." });
+
+    } catch (error) {
+        console.error("Leave Group Error:", error);
+        return res.status(500).json({ success: false, message: "שגיאת שרת פנימית." });
+    }
+};
+
 
 // פונקציה 1: חיפוש גם משתמשים וגם קבוצות
 exports.searchAll = async (req, res) => {
@@ -272,7 +382,7 @@ exports.searchAll = async (req, res) => {
             }
 
             groupsPromise = Group.find(groupQueryCondition)
-                .select('group_name admin members')
+                .select('group_name admin members group_profile_image')
                 .limit(10);
         }
 

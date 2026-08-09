@@ -230,6 +230,9 @@
         <div class="new-post-modal-content modal-content">
             <span class="close-popup" id="closeCreate">&times;</span>
             <h5 class="mb-3 fw-bold">יצירת פוסט חדש</h5>
+            <select id="creator">
+                <option value="self"></option>
+            </select>
             <input type="file" id="mediaUpload" accept="image/*, video/*" placeholder="יש לגרור תמונות וסרטונים לכאן">
             <br>
             <input type="text" id="postText" placeholder="יש להוסיף טקסט, אם לא תעלה מדיה זה יהיה תוכן הפוסט">
@@ -366,6 +369,7 @@
             <span class="close-popup" id="closeCreateGroup">&times;</span>
             <h5 class="mb-3 fw-bold">יצירת קבוצה חדשה</h5>
             <input type="text" id="newGroupNameInput" class="search-input-box mb-3" placeholder="הכנס את שם הקבוצה...">
+            <input type="file" id="newGroupProfileImageInput" accept="image/*" placeholder="העלה תמונת פרופיל לקבוצה (לא חובה)">
             <div id="createGroupError" class="error-message"></div>
             <button id="submitCreateGroupBtn" class="colorful-btn w-100 mt-2" style="background: #0095f6;">צור קבוצה</button>
         </div>

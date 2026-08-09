@@ -10,12 +10,88 @@
  * Part 9: Create Existing Posts Dynamically (Use the postObjects array to generate posts on page load)
  * Part 10: GIF Search Logic (API Integration, Display GIFs, Select and Insert into Comment)
  */
+
+const currentUser = {
+    username: "liorcohen299", // Fallback default
+    profileImage: "media/profile-pictures/default_profile.jpg", // Fallback default
+    groupAdmin: [],
+    groupMemberships: [],
+    friends: []
+};
+
+const groupImageMap = {};
+let selectedProfileImage = currentUser.profileImage;
+
+// save the logged in user values for use in the script
+async function fetchCurrentUser() {
+    try {
+        const response = await fetch('/api/current-user');
+        if (response.ok) {
+            const data = await response.json();
+            if (data.username) {
+                currentUser.username = data.username;
+
+                // Update the username in the suggestions section
+                const suggestionUsernameElement = document.querySelector('.suggestions-side .user-row .fw-bold');
+                if (suggestionUsernameElement) {
+                    suggestionUsernameElement.textContent = data.username;
+                }
+
+            }
+            if (data.user_profile_image) {
+                currentUser.profileImage = data.user_profile_image;
+                selectedProfileImage = data.user_profile_image;
+
+                // Update the profile image in the sidebar
+                const myProfileImgElement = document.querySelector('#profile-btn img');
+                if (myProfileImgElement) {
+                    myProfileImgElement.src = data.user_profile_image;
+                }
+
+                // Update the profile image in the suggestions section
+                const suggestionProfileImgElement = document.querySelector('.suggestions-side .user-row img');
+                if (suggestionProfileImgElement) {
+                    suggestionProfileImgElement.src = data.user_profile_image;
+                }
+            }
+
+            if (data.group_admin) {
+                currentUser.groupAdmin = data.group_admin;
+
+                currentUser.groupAdmin.forEach(group => {
+                    const groupName = group.group_name;
+                    const groupImg = group.group_profile_image || 'media/profile-pictures/default_profile.jpg';
+                    
+                    groupImageMap[groupName] = groupImg;
+                });
+            }
+
+            if (data.group_memberships) {
+                currentUser.groupMemberships = data.group_memberships;
+            }
+
+            if (data.friends) {
+                currentUser.friends = data.friends;
+            }
+        }
+    } catch (error) {
+        console.error("Could not fetch current session user:", error);
+    }
+}
+
+fetchCurrentUser();
+
 document.addEventListener("DOMContentLoaded", function () {
 
-    const currentUser = {
+    /*const currentUser = {
         username: "liorcohen299", // Fallback default
-        profileImage: "media/profile-pictures/default_profile.png" // Fallback default
+        profileImage: "media/profile-pictures/default_profile.jpg", // Fallback default
+        groupAdmin: [],
+        groupMemberships: []
     };
+
+    const groupImageMap = {};
+    let selectedProfileImage = currentUser.profileImage;
 
     // save the logged in user values for use in the script
     async function fetchCurrentUser() {
@@ -35,7 +111,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
                 if (data.user_profile_image) {
                     currentUser.profileImage = data.user_profile_image;
-                    console.log("Current user profile image:", currentUser.profileImage);
+                    selectedProfileImage = data.user_profile_image;
 
                     // Update the profile image in the sidebar
                     const myProfileImgElement = document.querySelector('#profile-btn img');
@@ -50,13 +126,28 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
 
                 }
+
+                if (data.group_admin) {
+                    currentUser.groupAdmin = data.group_admin;
+
+                    currentUser.groupAdmin.forEach(group => {
+                        const groupName = group.group_name;
+                        const groupImg = group.group_profile_image || 'media/profile-pictures/default_profile.jpg';
+                    
+                        groupImageMap[groupName] = groupImg;
+                    });
+                }
+
+                if (data.group_memberships) {
+                    currentUser.groupMemberships = data.group_memberships;
+                }
             }
         } catch (error) {
             console.error("Could not fetch current session user:", error);
         }
     }
 
-    fetchCurrentUser();
+    fetchCurrentUser();*/
     
     const posts = document.querySelectorAll('.post-card');
     const postContainer = document.getElementById('postsContainer');
@@ -343,10 +434,46 @@ document.addEventListener("DOMContentLoaded", function () {
     const uploadPostBtn = document.getElementById('uploadPostBtn');
     const templatePost = document.getElementById('templatePost');
     const uploadError = document.getElementById("uploadError");
+    const creatorSelect = document.getElementById('creator');
 
     if (createPostBtn) {
         createPostBtn.addEventListener('click', function() {
+            // Check if user is admin of at least one group
+            if (currentUser.groupAdmin && currentUser.groupAdmin.length > 0) {
+                creatorSelect.style.display = 'block';
+                creatorSelect.innerHTML = ''; // Clear previous options
+
+                // Default Option: The user themselves
+                const selfOption = document.createElement('option');
+                selfOption.value = currentUser.username;
+                selfOption.textContent = currentUser.username;
+                creatorSelect.appendChild(selfOption);
+
+                // Group Options: Add each group name details from groupAdmin
+                currentUser.groupAdmin.forEach(group => {
+                    const groupOption = document.createElement('option');
+                    groupOption.value = group.group_name;
+                    groupOption.textContent = group.group_name;
+                    creatorSelect.appendChild(groupOption);
+                });
+            } else {
+                // Hide select dropdown if user manages no groups
+                creatorSelect.style.display = 'none';
+            }
             newPostModal.style.display = 'flex';
+        });
+    }
+
+    // Listen for changes if the user switches the creator dropdown
+    if (creatorSelect) {
+        creatorSelect.addEventListener('change', function() {
+            const chosenValue = creatorSelect.value;
+
+            if (chosenValue === currentUser.username) {
+                selectedProfileImage = currentUser.profileImage;
+            } else if (groupImageMap[chosenValue]) {
+                selectedProfileImage = groupImageMap[chosenValue];
+            }
         });
     }
 
@@ -391,9 +518,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
 
+            // Determine selected creator: dropdown value if visible, otherwise currentUser.username
+            const selectedCreator = (creatorSelect.style.display !== 'none' && creatorSelect.value) 
+                ? creatorSelect.value 
+                : currentUser.username;
+
             const formData = new FormData();
-            formData.append('username', currentUser.username);
-            formData.append('user_profile_image', currentUser.profileImage);
+            formData.append('username', selectedCreator);
+            formData.append('user_profile_image', selectedProfileImage);
             formData.append('post_type', postType);
             formData.append('caption', caption.value.trim());
 
@@ -404,17 +536,46 @@ document.addEventListener("DOMContentLoaded", function () {
                 formData.append('post_content', postText.value);
             }
 
+            // Disable the button and show loading text
+            uploadPostBtn.disabled = true;
+            const originalButtonText = uploadPostBtn.textContent;
+            uploadPostBtn.textContent = "מעלה...";
+
             fetch('/api/posts', {method: 'POST',
                 body: formData // Send the FormData object directly
                 })
                 .then(response => response.json())
                 .then(result => {
                     if (result.success) {
-                        BuildPost(result.addedPost, true);
-                        document.getElementById('newPostMessage').style.display = 'block';
+                        const postedAsUser = (result.addedPost.username === currentUser.username);
+
+                        // TOGGLE CHECK:
+                        // If we are in "my posts" view AND we posted as ourselves -> Show it!
+                        // If we are in "feed" view AND we posted as a group (or anything else) -> Show it!
+                        // Otherwise, don't inject it into the current view container.
+                        if ((showingOnlyMyPosts && postedAsUser) || (!showingOnlyMyPosts && !postedAsUser)) {
+                            BuildPost(result.addedPost, true);
+                            document.getElementById('newPostMessage').style.display = 'block';
+                        }
+                        else {
+                            // Clear the form fields after adding the post
+                            postText.value = '';
+                            caption.value = '';
+                            mediaUpload.value = '';
+                        }
                         newPostModal.style.display = 'none';
                     }
                 })
+                .catch(err => {
+                    console.error("Error uploading post:", err);
+                    uploadError.textContent = "שגיאה בהעלאת הפוסט. נסה שוב.";
+                    uploadError.style.display = "block";
+                })
+                .finally(() => {
+                    // reset the button state regardless of success or failure
+                    uploadPostBtn.disabled = false;
+                    uploadPostBtn.textContent = originalButtonText;
+                });
         });
     }
 
@@ -480,10 +641,49 @@ document.addEventListener("DOMContentLoaded", function () {
     // ===========================================
     // 9. CREATE EXISTING POSTS DINAMICALLY LOGIC
     // ===========================================
-    fetch('/api/posts')
-    .then(response => response.json())
-    .then(postsArray => {postsArray.forEach((postData) => BuildPost(postData, false));}) // Call BuildPost for each post object in the array
-    .catch(err => console.error("Failed to load posts:", err));
+    let showingOnlyMyPosts = false;
+
+    // Reusable function to fetch and render posts from any endpoint
+    async function loadPosts() {
+        const endpoint = showingOnlyMyPosts ? '/api/posts/my-posts' : '/api/posts';
+
+        try {
+            const response = await fetch(endpoint, { credentials: 'include' });
+            if (response.ok) {
+                const postsArray = await response.json();
+            
+                // Clear existing posts from the container before rendering the new list
+                if (postContainer) {
+                    postContainer.innerHTML = ''; 
+                }
+
+                // Build each post object into the DOM
+                postsArray.forEach((postData) => BuildPost(postData, false));
+            } else {
+                console.error("Failed to load posts:", response.status);
+            }
+        } catch (err) {
+            console.error("Failed to load posts:", err);
+        }
+    }
+
+    // Setup the Profile Button Toggle Listener
+    const profileBtn = document.getElementById('profile-btn');
+    if (profileBtn) {
+        profileBtn.addEventListener('click', async function() {
+            // Toggle state: true becomes false, false becomes true
+            showingOnlyMyPosts = !showingOnlyMyPosts;
+        
+            // Optional visual highlight for the active profile state
+            profileBtn.style.border = showingOnlyMyPosts ? "2px solid #0d6efd" : "none";
+
+            // Reload posts based on the toggled state
+            await loadPosts();
+        });
+    }
+
+    // Initial load when the page loads
+    loadPosts();
 
     function BuildPost(postData, isNew = false) {
         const templatePost = document.getElementById('templatePost');
@@ -969,6 +1169,18 @@ document.addEventListener("DOMContentLoaded", function () {
                         if (data.users && data.users.length > 0) {
                             userSearchResults.innerHTML += `<div class="fw-bold mb-2 mt-2" style="color: #737373;">משתמשים</div>`;
                             data.users.forEach(user => {
+
+                                // Check if user is already a friend (assuming currentUser.friends is available globally)
+                                const isFriend = currentUser.friends && currentUser.friends.includes(user.username);
+                                const isSelf = user.username === currentUser.username;
+
+                                let friendButtonHtml = "";
+                                if (!isSelf) {
+                                    friendButtonHtml = !isFriend
+                                        ? `<button class="colorful-btn action-friend-btn" data-username="${user.username}" data-action="add" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; margin-left: 8px;">הוסף חבר</button>`
+                                        : `<button class="colorful-btn action-friend-btn" data-username="${user.username}" data-action="remove" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; margin-left: 8px; background-color: #efefef; color: #262626;">הסר חבר</button>`;
+                                }
+
                                 userSearchResults.innerHTML += `
                                     <div class="user-row mb-2" style="border-bottom: 1px solid #efefef; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
                                         <div class="d-flex align-items-center">
@@ -976,6 +1188,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             <div class="fw-bold small">${user.username}</div>
                                         </div>
                                         <button class="colorful-btn" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer;" onclick="addToGroupPreview('${user.username}')">הוסף לקבוצה</button>
+                                        ${friendButtonHtml}
                                     </div>
                                 `;
                             });
@@ -985,15 +1198,24 @@ document.addEventListener("DOMContentLoaded", function () {
                         if (data.groups && data.groups.length > 0) {
                             userSearchResults.innerHTML += `<div class="fw-bold mb-2 mt-3" style="color: #737373;">קבוצות</div>`;
                             data.groups.forEach(group => {
+                                // Simple check: is the current user in the group's members array?
+                                const isMember = group.members && group.members.includes(currentUser.username);
+
+                                // Show "Join Group" button if not a member, otherwise show text indication
+                                const joinButtonHtml = !isMember 
+                                    ? `<button class="colorful-btn" style="padding: 4px 8px; font-size: 11px; border-radius: 6px; cursor: pointer; margin-left: 8px;" onclick="event.stopPropagation(); joinGroup('${group.group_name}')">הצטרף לקבוצה</button>` 
+                                    : `<button class="colorful-btn" style="padding: 4px 8px; font-size: 11px; border-radius: 6px; cursor: pointer; margin-left: 8px; background-color: #efefef; color: #262626;" onclick="event.stopPropagation(); leaveGroup('${group.group_name}')">הסר מהקבוצה</button>`;
+
                                 userSearchResults.innerHTML += `
                                     <div class="user-row mb-2" style="border-bottom: 1px solid #efefef; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="showGroupMembers('${group.group_name}')">
                                         <div class="d-flex align-items-center">
-                                            <div style="width: 32px; height: 32px; border-radius: 50%; background: #e0e0e0; display: flex; justify-content: center; align-items: center; margin-left: 10px; font-size: 16px;">👥</div>
+                                            <img src="${group.group_profile_image}" class="suggested-profile-img" alt="${group.group_name}" style="margin-left: 10px;">
                                             <div>
                                                 <div class="fw-bold small">${group.group_name}</div>
                                                 <div class="text-muted" style="font-size: 11px;">${group.members.length} חברים</div>
                                             </div>
                                         </div>
+                                        ${joinButtonHtml}
                                         <span style="font-size: 12px; color: #0095f6;">הצג חברים</span>
                                     </div>
                                 `;
@@ -1020,7 +1242,110 @@ document.addEventListener("DOMContentLoaded", function () {
                 userSearchResults.innerHTML = "";
             });
         }
+
+        if (userSearchResults) {
+            userSearchResults.addEventListener("click", async (e) => {
+                const friendBtn = e.target.closest(".action-friend-btn");
+                if (!friendBtn) return;
+
+                const targetUsername = friendBtn.dataset.username;
+                const action = friendBtn.dataset.action;
+
+                if (action === "add") {
+                    await addFriend(targetUsername);
+                } else if (action === "remove") {
+                    await removeFriend(targetUsername);
+                }
+            });
+        }
     }
+
+    window.removeFriend = async function(targetUsername) {
+        try {
+            const response = await fetch('/remove-friend', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targetUsername: targetUsername })
+            });
+    
+            const result = await response.json();
+            if (response.ok) {
+                alert(`המשתמש ${targetUsername} הוסר מהחברים בהצלחה.`);
+                if (typeof currentUser !== 'undefined' && currentUser.friends) {
+                    currentUser.friends = currentUser.friends.filter(f => f !== targetUsername);
+                }
+                if (applyUserSearchBtn) applyUserSearchBtn.click();
+            } else {
+                alert(result.message || "שגיאה בהסרת חבר.");
+            }
+        } catch (error) {
+            console.error("Error removing friend:", error);
+        }
+    };
+
+    window.addFriend = async function(targetUsername) {
+        try {
+            const response = await fetch('/add-friend', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targetUsername: targetUsername })
+            });
+        
+            const result = await response.json();
+            if (response.ok) {
+                alert(`המשתמש ${targetUsername} נוסף לחברים בהצלחה!`);
+                // Update local currentUser object if needed or re-trigger search
+                if (typeof currentUser !== 'undefined' && currentUser.friends) {
+                    currentUser.friends.push(targetUsername);
+                }
+                if (applyUserSearchBtn) applyUserSearchBtn.click();
+            } else {
+                alert(result.message || "שגיאה בהוספת חבר.");
+            }
+        } catch (error) {
+            console.error("Error adding friend:", error);
+        }
+    };
+
+    window.joinGroup = async function(groupName) {
+        try {
+            const response = await fetch('/join-group', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groupName: groupName })
+            });
+        
+            const result = await response.json();
+            if (response.ok) {
+                alert(`הצטרפת בהצלחה לקבוצה ${groupName}!`);
+                if (applyUserSearchBtn) applyUserSearchBtn.click();
+            } else {
+                alert(result.message || "שגיאה בהצטרפות לקבוצה.");
+            }
+        } catch (error) {
+            console.error("Error joining group:", error);
+        }
+    };
+
+    window.leaveGroup = async function(groupName) {
+        try {
+            const response = await fetch('/leave-group', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groupName: groupName })
+            });
+        
+            const result = await response.json();
+            if (response.ok) {
+                alert(`עזבת את הקבוצה ${groupName} בהצלחה.`);
+                if (applyUserSearchBtn) applyUserSearchBtn.click();
+            } else {
+                alert(result.message || "שגיאה בעזיבת הקבוצה.");
+            }
+        } catch (error) {
+            console.error("Error leaving group:", error);
+        }
+    };
 
 
     // פונקציה חדשה שמושכת את רשימת חברי הקבוצה מהשרת ומציגה אותם
@@ -1117,6 +1442,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const closeCreateGroup = document.getElementById("closeCreateGroup");
     const submitCreateGroupBtn = document.getElementById("submitCreateGroupBtn");
     const newGroupNameInput = document.getElementById("newGroupNameInput");
+    const newGroupProfileImageInput = document.getElementById("newGroupProfileImageInput");
     const createGroupError = document.getElementById("createGroupError");
 
     if (openCreateGroupBtn && createGroupModal) {
@@ -1130,6 +1456,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // שליחת הבקשה ליצירת קבוצה
         submitCreateGroupBtn.addEventListener("click", () => {
             const groupName = newGroupNameInput.value.trim();
+            const imageFile = newGroupProfileImageInput.files[0]; // Get the selected file
             
             if (!groupName) {
                 createGroupError.textContent = "אנא הזן שם לקבוצה.";
@@ -1137,10 +1464,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
+            // Use FormData to package text data and files together
+            const formData = new FormData();
+            formData.append("groupName", groupName);
+    
+            if (imageFile) {
+                formData.append("groupProfileImage", imageFile); // Matches backend file upload field name
+            }
+
             fetch('/create-group', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ groupName: groupName })
+                body: formData
             })
             .then(response => response.json())
             .then(data => {
@@ -1148,6 +1482,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     alert("הקבוצה " + groupName + " נוצרה בהצלחה!");
                     createGroupModal.style.display = "none";
                     newGroupNameInput.value = "";
+                    newGroupProfileImageInput.value = "";
                     createGroupError.style.display = "none";
                 } else {
                     createGroupError.textContent = data.message;
