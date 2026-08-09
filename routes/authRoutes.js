@@ -21,6 +21,7 @@ router.put('/update-group-name', groupController.updateGroupName);
 router.post('/add-user-to-group', groupController.addUserToGroup);
 router.post('/join-group', groupController.joinGroup);
 router.post('/leave-group', groupController.leaveGroup);
+router.post('/remove-from-group', groupController.removeUserFromGroup);
 router.get('/search-all', groupController.searchAll);
 router.get('/group-members/:groupName', groupController.getGroupMembers);
 router.get('/statistics/groups', groupController.getGroupStatistics);

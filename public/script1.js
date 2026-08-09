@@ -564,6 +564,10 @@ document.addEventListener("DOMContentLoaded", function () {
                             mediaUpload.value = '';
                         }
                         newPostModal.style.display = 'none';
+
+                        // Refresh the graphs after a new post is added
+                        drawTopUsersGraph();
+                        drawUserPostTypeStatsGraph();
                     }
                 })
                 .catch(err => {
@@ -601,6 +605,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (result.success) {
                         // remove the post visually if the server successfully deleted it
                         postCard.remove();
+
+                        // Refresh the graphs after a post is deleted
+                        drawTopUsersGraph();
+                        drawUserPostTypeStatsGraph();
                     }
                 })
                 .catch(err => console.error("Error deleting post:", err));
@@ -1110,7 +1118,7 @@ document.addEventListener("DOMContentLoaded", function () {
         } else if (filterValue === "users") {
             adminSearchInput.style.display = "none";
             groupSearchInput.style.display = "block";
-        } else { // "all"
+        } else { // "all" or "my-groups"
             adminSearchInput.style.display = "none";
             groupSearchInput.style.display = "none";
         }
@@ -1198,16 +1206,36 @@ document.addEventListener("DOMContentLoaded", function () {
                         if (data.groups && data.groups.length > 0) {
                             userSearchResults.innerHTML += `<div class="fw-bold mb-2 mt-3" style="color: #737373;">קבוצות</div>`;
                             data.groups.forEach(group => {
+                                // Check if the current user is the admin of this group
+                                const isAdmin = group.admin === currentUser.username;
                                 // Simple check: is the current user in the group's members array?
                                 const isMember = group.members && group.members.includes(currentUser.username);
 
-                                // Show "Join Group" button if not a member, otherwise show text indication
-                                const joinButtonHtml = !isMember 
-                                    ? `<button class="colorful-btn" style="padding: 4px 8px; font-size: 11px; border-radius: 6px; cursor: pointer; margin-left: 8px;" onclick="event.stopPropagation(); joinGroup('${group.group_name}')">הצטרף לקבוצה</button>` 
-                                    : `<button class="colorful-btn" style="padding: 4px 8px; font-size: 11px; border-radius: 6px; cursor: pointer; margin-left: 8px; background-color: #efefef; color: #262626;" onclick="event.stopPropagation(); leaveGroup('${group.group_name}')">הסר מהקבוצה</button>`;
+                                // Determine the action button HTML
+                                let joinButtonHtml = "";
+                                if (isAdmin) {
+                                    // If the user is the admin, don't show the leave/join button (or show a badge)
+                                    joinButtonHtml = `<span class="text-muted" style="font-size: 11px; margin-left: 8px;">(מנהל קבוצה)</span>`;
+                                } else {
+                                    // Otherwise, show Join or Leave depending on membership status
+                                    joinButtonHtml = !isMember 
+                                        ? `<button class="colorful-btn" style="padding: 4px 8px; font-size: 11px; border-radius: 6px; cursor: pointer; margin-left: 8px;" onclick="event.stopPropagation(); joinGroup('${group.group_name}')">הצטרף לקבוצה</button>` 
+                                        : `<button class="colorful-btn" style="padding: 4px 8px; font-size: 11px; border-radius: 6px; cursor: pointer; margin-left: 8px; background-color: #efefef; color: #262626;" onclick="event.stopPropagation(); leaveGroup('${group.group_name}')">צא מהקבוצה</button>`;
+                                }
+                                
+                                // Conditionally set click behavior and span visibility based on 'my-groups' filter
+                                const isMyGroups = filter === "my-groups";
+                                
+                                // Check if current filter is 'my-groups' to display the span
+                                const showMembersSpan = filter === "my-groups" 
+                                    ? `<span style="font-size: 12px; color: #0095f6;">הצג חברים</span>` 
+                                    : "";
+                                
+                                const rowClickHandler = isMyGroups ? `onclick="showGroupMembers('${group.group_name}')"` : "";
+                                const rowCursorStyle = isMyGroups ? "cursor: pointer;" : "cursor: default;";
 
                                 userSearchResults.innerHTML += `
-                                    <div class="user-row mb-2" style="border-bottom: 1px solid #efefef; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="showGroupMembers('${group.group_name}')">
+                                    <div class="user-row mb-2" style="border-bottom: 1px solid #efefef; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; ${rowCursorStyle}" ${rowClickHandler}>
                                         <div class="d-flex align-items-center">
                                             <img src="${group.group_profile_image}" class="suggested-profile-img" alt="${group.group_name}" style="margin-left: 10px;">
                                             <div>
@@ -1216,7 +1244,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             </div>
                                         </div>
                                         ${joinButtonHtml}
-                                        <span style="font-size: 12px; color: #0095f6;">הצג חברים</span>
+                                        ${showMembersSpan}
                                     </div>
                                 `;
                             });
@@ -1360,10 +1388,24 @@ document.addEventListener("DOMContentLoaded", function () {
                 
                 data.members.forEach(member => {
                     const isAdmin = member.username === data.admin ? `<span style="color: #f09433; font-size: 12px; margin-right: 5px;">(מנהל) 👑</span>` : "";
+
+                    // Conditional rendering of the remove button based on admin status
+                    let removeButtonHtml = "";
+                    if (!isAdmin) {
+                        removeButtonHtml = `
+                            <button class="colorful-btn" 
+                                    style="padding: 4px 8px; font-size: 11px; border-radius: 6px; cursor: pointer; background-color: #ff4d4d; color: white; border: none;" 
+                                    onclick="removeUserFromGroup('${groupName}', '${member.username}')">
+                                הסר
+                            </button>
+                        `;
+                    }
+
                     list.innerHTML += `
                         <div class="d-flex align-items-center mb-3">
                             <img src="${member.user_profile_image}" style="width: 35px; height: 35px; border-radius: 50%; margin-left: 10px; object-fit: cover;">
                             <div class="fw-bold small">${member.username} ${isAdmin}</div>
+                            ${removeButtonHtml}
                         </div>
                     `;
                 });
@@ -1374,6 +1416,30 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         })
         .catch(err => console.error("Error fetching group members:", err));
+    };
+
+    window.removeUserFromGroup = async function(groupName, usernameToRemove) {
+        if (!confirm(`האם אתה בטוח שברצונך להסיר את ${usernameToRemove} מהקבוצה?`)) return;
+
+        try {
+            const response = await fetch('/remove-from-group', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groupName: groupName, usernameToRemove: usernameToRemove })
+            });
+    
+            const result = await response.json();
+            if (response.ok && result.success) {
+                alert(`המשתמש ${usernameToRemove} הוסר מהקבוצה בהצלחה.`);
+                // Refresh the modal list and the background search view
+                showGroupMembers(groupName);
+                if (applyUserSearchBtn) applyUserSearchBtn.click();
+            } else {
+                alert(result.message || "שגיאה בהסרת המשתמש מהקבוצה.");
+            }
+        } catch (error) {
+            console.error("Error removing user from group:", error);
+        }
     };
 
     // פונקציה זמנית להדגמת הוספה לקבוצה
@@ -1805,3 +1871,104 @@ function drawTopUsersGraph() {
 }
 
 drawTopUsersGraph();
+
+function drawUserPostTypeStatsGraph() {
+    fetch('/statistics/user-post-types')
+        .then(response => response.json())
+        .then(res => {
+            if (!res.success || res.data.length === 0) return;
+
+            // Transform the single user statistics object into an array for D3 categories
+            const stats = res.data;
+            const data = [
+                { type: 'טקסט (Text)', count: stats.textCount, color: '#3897f0' },
+                { type: 'תמונה (Image)', count: stats.imageCount, color: '#ed4956' },
+                { type: 'וידאו (Video)', count: stats.videoCount, color: '#833ab4' }
+            ];
+            
+            d3.select("#userPostTypesGraph").selectAll("*").remove();
+
+           
+            let tooltip = d3.select("#userPostTypesGraph").select(".tooltip");
+            if (tooltip.empty()) {
+                tooltip = d3.select("body")
+                  .append("div")
+                  .attr("class", "tooltip")
+                  .style("opacity", 0)
+                  .style("position", "absolute")
+                  .style("background-color", "rgba(0, 0, 0, 0.8)")
+                  .style("color", "white")
+                  .style("border-radius", "6px")
+                  .style("padding", "8px 12px")
+                  .style("font-size", "12px")
+                  .style("pointer-events", "none")
+                  .style("z-index", "10000");
+            }
+
+           
+            const margin = {top: 10, right: 15, bottom: 20, left: 10}, 
+                  width = 230 - margin.left - margin.right,
+                  height = 130 - margin.top - margin.bottom;
+
+            const svg = d3.select("#userPostTypesGraph")
+              .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+              .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            const maxPosts = d3.max(data, d => d.count);
+            const x = d3.scaleLinear()
+              .domain([0, maxPosts])
+              .range([ 0, width]);
+              
+            svg.append("g")
+              .attr("transform", `translate(0,${height})`)
+              .call(d3.axisBottom(x).ticks(maxPosts > 5 ? 5 : maxPosts))
+              .selectAll("text")
+                .style("font-size", "9px")
+                .style("color", "#737373");
+
+           
+            const y = d3.scaleBand()
+              .range([ 0, height ])
+              .domain(data.map(d => d.type))
+              .padding(.2);
+              
+          
+            svg.append("g")
+              .call(d3.axisLeft(y))
+              .selectAll("text")
+              .remove(); 
+
+           
+            svg.selectAll("myRect")
+              .data(data)
+              .join("rect")
+              .attr("x", x(0) )
+              .attr("y", d => y(d.type))
+              .attr("height", y.bandwidth())
+              .attr("fill", d => d.color) 
+              .on("mouseover", function(event, d) {
+                  d3.select(this).style("opacity", 0.8);
+                  tooltip.style("opacity", 1);
+              })
+              .on("mousemove", function(event, d) {
+                  tooltip
+                    .html(`<strong>${d.type}</strong><br/>${d.count} פוסטים`)
+                    .style("left", (event.pageX + 15) + "px")
+                    .style("top", (event.pageY - 25) + "px");
+              })
+              .on("mouseout", function(event, d) {
+                  d3.select(this).style("opacity", 1);
+                  tooltip.style("opacity", 0);
+              })
+              .attr("width", 0)
+              .transition()
+              .duration(1000)
+              .attr("width", d => x(d.count));
+        })
+        .catch(err => console.error("Error fetching top users graph:", err));
+}
+
+drawUserPostTypeStatsGraph();
