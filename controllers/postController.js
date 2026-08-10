@@ -214,3 +214,37 @@ exports.getTopActiveUsers = async (req, res) => {
         return res.status(500).json({ success: false, message: "שגיאה בשליפת נתוני משתמשים פעילים." });
     }
 };
+
+exports.getUserPostTypeStats = async (req, res) => {
+    try {
+        const username = req.session.username;
+        const stats = await Post.aggregate([
+            {
+                $match: { username: username } // Filter for a specific user
+            },
+            {
+                $group: {
+                    _id: "$username",
+                    totalPosts: { $sum: 1 },
+                    textCount: {
+                        $sum: { $cond: [{ $eq: ["$post_type", "text"] }, 1, 0] }
+                    },
+                    imageCount: {
+                        $sum: { $cond: [{ $eq: ["$post_type", "image"] }, 1, 0] }
+                    },
+                    videoCount: {
+                        $sum: { $cond: [{ $eq: ["$post_type", "video"] }, 1, 0] }
+                    }
+                }
+            }
+        ]);
+
+        // If the user hasn't posted anything yet, return zero counts
+        const userStats = stats.length > 0 ? stats[0] : { totalPosts: 0, textCount: 0, imageCount: 0, videoCount: 0 };
+
+        return res.status(200).json({ success: true, data: userStats });
+    } catch (error) {
+        console.error("Post Type Stats Error:", error);
+        return res.status(500).json({ success: false, message: "שגיאה בשליפת סטטיסטיקת סוגי פוסטים." });
+    }
+};

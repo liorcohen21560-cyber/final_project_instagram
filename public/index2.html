@@ -73,6 +73,11 @@
             <div id="topUsersGraph" style="width: 100%; display: flex; justify-content: center; overflow: hidden;"></div>
         </div>
 
+        <div id="userPostTypesWidget" style="position: absolute; top: 215px; right: 100px; width: 250px; height: 180px; background: white; border: 1px solid #dbdbdb; border-radius: 8px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 10;">
+            <h6 class="fw-bold text-center mb-2" style="font-size: 12px; color: #737373;">התפלגות סוגי הפוסטים שלי 📊</h6>
+            <div id="userPostTypesGraph" style="width: 100%; display: flex; justify-content: center; overflow: hidden;"></div>
+        </div>
+
 
         <div id="newPostMessage" class="new-post-message">
             יש פוסט חדש!
@@ -334,6 +339,7 @@
                 <option value="all">משתמשים וקבוצות</option>
                 <option value="users">משתמשים</option>
                 <option value="groups">קבוצות</option>
+                <option value="my-groups">הקבוצות שלי</option>
             </select>
             <input type="text" id="liveUserSearchInput" class="search-input-box mb-3" placeholder="חפש/י לפי שם...">
             <input type="text" id="adminSearchInput" class="search-input-box mb-3" placeholder="חפש/י לפי שם מנהל הקבוצה...">

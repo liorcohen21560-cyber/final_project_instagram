@@ -313,6 +313,59 @@ exports.leaveGroup = async (req, res) => {
     }
 };
 
+exports.removeUserFromGroup = async (req, res) => {
+    try {
+        if (!req.session || !req.session.username) {
+            return res.status(401).json({ success: false, message: "עליך להתחבר כדי לבצע פעולה זו." });
+        }
+
+        const groupName = req.body.groupName ? req.body.groupName.trim() : "";
+        const usernameToRemove = req.body.usernameToRemove ? req.body.usernameToRemove.trim() : "";
+        const currentUsername = req.session.username.trim();
+
+        if (!groupName || !usernameToRemove) {
+            return res.status(400).json({ success: false, message: "חסרים נתונים (שם קבוצה או שם משתמש)." });
+        }
+
+        const group = await Group.findOne({ group_name: groupName });
+        if (!group) {
+            return res.status(404).json({ success: false, message: "הקבוצה המבוקשת לא נמצאה." });
+        }
+
+        // Verify that the person making the request is the group admin
+        if (group.admin !== currentUsername) {
+            return res.status(403).json({ success: false, message: "רק מנהל הקבוצה רשאי להסיר חברים." });
+        }
+
+        // Prevent admin from removing themselves through this route
+        if (usernameToRemove === group.admin) {
+            return res.status(400).json({ success: false, message: "לא ניתן להסיר את מנהל הקבוצה." });
+        }
+
+        if (!group.members.includes(usernameToRemove)) {
+            return res.status(400).json({ success: false, message: "המשתמש אינו חבר בקבוצה זו." });
+        }
+
+        // Remove user from group members array
+        await Group.updateOne(
+            { group_name: groupName },
+            { $pull: { members: usernameToRemove } }
+        );
+
+        // Remove group from user's memberships array
+        await User.updateOne(
+            { username: usernameToRemove },
+            { $pull: { group_memberships: groupName } }
+        );
+
+        return res.status(200).json({ success: true, message: "המשתמש הוסר בהצלחה מהקבוצה." });
+
+    } catch (error) {
+        console.error("Remove User From Group Error:", error);
+        return res.status(500).json({ success: false, message: "שגיאת שרת פנימית." });
+    }
+};
+
 
 // פונקציה 1: חיפוש גם משתמשים וגם קבוצות
 exports.searchAll = async (req, res) => {
@@ -320,7 +373,7 @@ exports.searchAll = async (req, res) => {
         const { filter = 'all', q = '', admin = '', group = '' } = req.query;
 
         // אם כל שדות החיפוש ריקים, מחזירים תוצאות ריקות
-        if (!q && !admin && !group) {
+        if (filter !== 'my-groups' && !q && !admin && !group) {
             return res.json({ success: true, users: [], groups: [] });
         }
 
@@ -379,6 +432,17 @@ exports.searchAll = async (req, res) => {
             // אם הוגדר חיפוש לפי מנהל (admin)
             if (admin) {
                 groupQueryCondition.admin = { $regex: admin, $options: 'i' };
+            }
+
+            groupsPromise = Group.find(groupQueryCondition)
+                .select('group_name admin members group_profile_image')
+                .limit(10);
+        }
+        else if (filter === 'my-groups') {
+            let groupQueryCondition = { admin: req.session.username }; // Only groups where user is the admin
+
+            if (q) {
+                groupQueryCondition.group_name = { $regex: q, $options: 'i' };
             }
 
             groupsPromise = Group.find(groupQueryCondition)
