@@ -12,6 +12,8 @@ router.get('/api/posts', postController.getFeed);
 router.get('/api/posts/my-posts', postController.getMyPosts);
 router.post('/api/posts', upload.single('mediaFile'), postController.createPost); // Use multer middleware to handle file upload to MongoDB GridFS
 router.post('/api/posts/delete', postController.deletePost);
+router.post('/api/posts/:id/like', postController.toggleLike);
+router.post('/api/posts/:id/comment', postController.addComment);
 router.get('/api/gifs', postController.searchGifs);
 router.get('/statistics/top-users', postController.getTopActiveUsers);
 router.get('/statistics/user-post-types', postController.getUserPostTypeStats);
