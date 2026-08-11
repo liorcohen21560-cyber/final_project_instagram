@@ -9,10 +9,16 @@ const postSchema = new mongoose.Schema({
   post_type: { type: String, default: 'text' },
   post_content: { type: String, required: true },
   audio: { type: String, default: '' },
-  like_count: { type: String, default: '0' },
+  like_count: { type: Number, default: 0 },
   comment_count: { type: Number, default: 0 },
   repost_count: { type: Number, default: 0 },
   liked_by_usernames: { type: [String], default: [] },
+  comments: [{
+    username: { type: String, required: true },
+    comment_content: { type: String, required: true },
+    comment_type: { type: String, default: 'text' }, // 'text' or 'gif'
+    createdAt: { type: Date, default: Date.now }
+  }],
   caption: { type: String, default: '' }
 }, { timestamps: true }); // Creates createdAt and updatedAt fields automatically
 

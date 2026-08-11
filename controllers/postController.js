@@ -248,3 +248,99 @@ exports.getUserPostTypeStats = async (req, res) => {
         return res.status(500).json({ success: false, message: "שגיאה בשליפת סטטיסטיקת סוגי פוסטים." });
     }
 };
+
+exports.toggleLike = async (req, res) => {
+    try {
+        const currentUsername = req.session ? req.session.username : null;
+
+        if (!currentUsername) {
+            return res.status(401).json({ success: false, message: "Unauthorized. Please log in." });
+        }
+
+        const postId = req.params.id;
+        const post = await Post.findById(postId);
+
+        if (!post) {
+            return res.status(404).json({ success: false, message: "Post not found." });
+        }
+
+        // Ensure liked_by_usernames is initialized as an array
+        if (!Array.isArray(post.liked_by_usernames)) {
+            post.liked_by_usernames = [];
+        }
+
+        const hasLiked = post.liked_by_usernames.includes(currentUsername);
+
+        let updateQuery;
+        if (hasLiked) {
+            // Remove user from liked_by_usernames
+            updateQuery = { $pull: { liked_by_usernames: currentUsername } };
+        } else {
+            // Add user to liked_by_usernames
+            updateQuery = { $push: { liked_by_usernames: currentUsername } };
+        }
+
+        // Perform update and get the updated document
+        const updatedPost = await Post.findByIdAndUpdate(postId, updateQuery, { new: true });
+
+        // Update like_count to match the exact size of the array
+        updatedPost.like_count = updatedPost.liked_by_usernames.length;
+        await updatedPost.save();
+
+        return res.status(200).json({
+            success: true,
+            liked: !hasLiked,
+            like_count: updatedPost.like_count
+        });
+
+    } catch (error) {
+        console.error("Toggle Like Error:", error);
+        return res.status(500).json({ success: false, message: "Server error toggling like." });
+    }
+};
+
+exports.addComment = async (req, res) => {
+    try {
+        const currentUsername = req.session ? req.session.username : null;
+        if (!currentUsername) {
+            return res.status(401).json({ success: false, message: "Unauthorized. Please log in." });
+        }
+
+        const postId = req.params.id;
+        const { comment_content, comment_type } = req.body;
+
+        if (!comment_content) {
+            return res.status(400).json({ success: false, message: "Comment content is required." });
+        }
+
+        const newComment = {
+            username: currentUsername,
+            comment_content: comment_content,
+            comment_type: comment_type || 'text',
+            createdAt: new Date()
+        };
+
+        const updatedPost = await Post.findByIdAndUpdate(
+            postId,
+            { 
+                $push: { comments: newComment },
+                $inc: { comment_count: 1 }
+            },
+            { new: true }
+        );
+
+        if (!updatedPost) {
+            return res.status(404).json({ success: false, message: "Post not found." });
+        }
+
+        return res.status(200).json({
+            success: true,
+            comment: newComment,
+            comment_count: updatedPost.comment_count
+        });
+
+    } catch (error) {
+        console.error("Add Comment Error:", error);
+        return res.status(500).json({ success: false, message: "Server error adding comment." });
+    }
+};

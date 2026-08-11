@@ -9,6 +9,7 @@
  * Part 8: Share Post (Simulate share action with alert)
  * Part 9: Create Existing Posts Dynamically (Use the postObjects array to generate posts on page load)
  * Part 10: GIF Search Logic (API Integration, Display GIFs, Select and Insert into Comment)
+ * Part 11: Facebook Post Logic (Send post data to backend for Facebook posting)
  */
 
 const currentUser = {
@@ -158,33 +159,55 @@ document.addEventListener("DOMContentLoaded", function () {
     const ORIGINAL_LIKE_SRC = "media/icons/like.png";
     const RED_LIKE_SRC = "media/icons/red_like.png";
 
-    function initializePost(post) {
+    function initializePost(post, postData) {
         const likeBtnImg = post.querySelector('.like-btn-img');
         const likeCountIconText = post.querySelector('.like-count-txt'); 
         const likeCountDisplayText = post.querySelector('.like-count-display'); 
         
         if (!likeBtnImg || !likeCountIconText) return;
 
-        let isLiked = false;
-        const rawText = likeCountIconText.textContent.replace(/,/g, '');
-        const baseLikes = parseInt(rawText);
+        // Check if the current user has already liked this post from the database data
+        let isLiked = currentUser && postData.liked_by_usernames && postData.liked_by_usernames.includes(currentUser.username);
+        likeBtnImg.src = isLiked ? RED_LIKE_SRC : ORIGINAL_LIKE_SRC;
 
-        likeBtnImg.addEventListener('click', function () {
+        let currentLikes = postData.like_count || 0;
+
+        likeBtnImg.addEventListener('click', async function () {
+            // Prevent multiple rapid clicks if needed
+            if (likeBtnImg.dataset.loading === "true") return;
+            likeBtnImg.dataset.loading = "true";
+
             likeBtnImg.classList.remove('liked-animation');
             void likeBtnImg.offsetWidth; 
             likeBtnImg.classList.add('liked-animation');
 
-            if (!isLiked) {
-                let newCount = baseLikes + 1;
-                likeCountIconText.textContent = newCount.toLocaleString('en-US');
-                if(likeCountDisplayText) likeCountDisplayText.textContent = newCount.toLocaleString('en-US');
-                likeBtnImg.src = RED_LIKE_SRC;
-                isLiked = true; 
-            } else {
-                likeCountIconText.textContent = baseLikes.toLocaleString('en-US');
-                if(likeCountDisplayText) likeCountDisplayText.textContent = baseLikes.toLocaleString('en-US');
-                likeBtnImg.src = ORIGINAL_LIKE_SRC;
-                isLiked = false; 
+            try {
+                // Send request to backend toggle like route
+                const response = await fetch(`/api/posts/${postData._id}/like`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+            
+                if (response.ok && result.success) {
+                    isLiked = result.liked;
+                    currentLikes = result.like_count;
+
+                    // Update UI text and image based on backend response
+                    likeCountIconText.textContent = currentLikes.toLocaleString('en-US');
+                    if (likeCountDisplayText) {
+                        likeCountDisplayText.textContent = currentLikes.toLocaleString('en-US');
+                    }
+
+                    likeBtnImg.src = isLiked ? RED_LIKE_SRC : ORIGINAL_LIKE_SRC;
+                } else {
+                    alert(result.message || "שגיאה בביצוע לייק.");
+                }
+            } catch (error) {
+                console.error("Error toggling like:", error);
+            } finally {
+                likeBtnImg.dataset.loading = "false";
             }
         });
 
@@ -195,9 +218,6 @@ document.addEventListener("DOMContentLoaded", function () {
         const toggleCommentsBtn = post.querySelector('.toggle-comments-btn'); 
         const commentsList = post.querySelector('.comments-list');
         const addCommentSection = post.querySelector('.add-comment-section');
-
-        
-       
       
        // תופסים את כפתור ה-GIF שכבר קיים ב-HTML
         const gifBtn = post.querySelector('.gif-comment-btn');
@@ -217,19 +237,32 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         }
         // --------------------------------------------------
+
         const userTypingPopup = post.querySelector('.user-typing-popup');
         const commentInput = post.querySelector('.comment-input');
         const postCommentBtn = post.querySelector('.post-comment-btn');
         const commentCountIconTxt = post.querySelector('.comment-count-txt');
         const commentCountDisplayTxt = post.querySelector('.comment-count-display');
 
-
-        
-
         if (!toggleCommentsBtn || !commentsList || !commentInput || !postCommentBtn) return;
 
-        let currentCommentCount = parseInt(commentCountIconTxt.textContent.replace(/,/g, ''));
+        let currentCommentCount = postData.comment_count || 0;
         let isCommentsVisible = false;
+
+        // --- Render existing comments from DB on load ---
+        if (postData.comments && Array.isArray(postData.comments)) {
+            commentsList.innerHTML = ''; // Clear previous if any
+            postData.comments.forEach(c => {
+                const commentDiv = document.createElement('div');
+                commentDiv.classList.add('single-comment');
+                if (c.comment_type === 'gif') {
+                    commentDiv.innerHTML = `<strong>${c.username}</strong> <img src="${c.comment_content}" style="max-height: 100px; display: block; margin-top: 4px;">`;
+                } else {
+                    commentDiv.innerHTML = `<strong>${c.username}</strong> ${c.comment_content}`;
+                }
+                commentsList.appendChild(commentDiv);
+            });
+        }
 
         function toggleCommentSection() {
             isCommentsVisible = !isCommentsVisible;
@@ -261,28 +294,61 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
-        function addComment() {
+        async function addComment(content = null, type = 'text') {
             userTypingPopup.style.display = 'none';
-            const commentText = commentInput.value.trim();
-            if (commentText === '') return;
 
-            const newComment = document.createElement('div');
-            newComment.classList.add('single-comment');
-            newComment.innerHTML = `<strong>${currentUser.username}</strong> ${commentText}`;
-
-            commentsList.appendChild(newComment);
-
-            currentCommentCount++;
-            commentCountIconTxt.textContent = currentCommentCount.toLocaleString('en-US');
-            
-            if (!isCommentsVisible) {
-                toggleCommentsBtn.innerHTML = `הצג את כל <span class="comment-count-display">${currentCommentCount.toLocaleString('en-US')}</span> התגובות`;
+            // Ensure content is actually a clean string, not a browser Event object
+            let commentText = "";
+            if (typeof content === 'string') {
+                commentText = content.trim();
+            } else {
+                commentText = commentInput.value.trim();
             }
 
-            commentInput.value = '';
-            postCommentBtn.setAttribute('disabled', 'true');
+            if (commentText === '') return;
 
-            commentsList.scrollTop = commentsList.scrollHeight;
+            try {
+                const response = await fetch(`/api/posts/${postData._id}/comment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ comment_content: commentText, comment_type: type })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    const newCommentObj = result.comment;
+                    currentCommentCount = result.comment_count;
+
+                    const newCommentDiv = document.createElement('div');
+                    newCommentDiv.classList.add('single-comment');
+                    
+                    if (newCommentObj.comment_type === 'gif') {
+                        newCommentDiv.innerHTML = `<strong>${newCommentObj.username}</strong> <img src="${newCommentObj.comment_content}" style="max-height: 100px; display: block; margin-top: 4px;">`;
+                    } else {
+                        newCommentDiv.innerHTML = `<strong>${newCommentObj.username}</strong> ${newCommentObj.comment_content}`;
+                    }
+
+                    commentsList.appendChild(newCommentDiv);
+
+                    commentCountIconTxt.textContent = currentCommentCount.toLocaleString('en-US');
+                    if (commentCountDisplayTxt) {
+                        commentCountDisplayTxt.textContent = currentCommentCount.toLocaleString('en-US');
+                    }
+                    
+                    if (!isCommentsVisible) {
+                        toggleCommentsBtn.innerHTML = `הצג את כל <span class="comment-count-display">${currentCommentCount.toLocaleString('en-US')}</span> התגובות`;
+                    }
+
+                    commentInput.value = '';
+                    postCommentBtn.setAttribute('disabled', 'true');
+                    commentsList.scrollTop = commentsList.scrollHeight;
+                } else {
+                    alert(result.message || "שגיאה בשמירת התגובה.");
+                }
+            } catch (error) {
+                console.error("Error adding comment:", error);
+            }
         }
 
         postCommentBtn.addEventListener('click', addComment);
@@ -295,7 +361,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    posts.forEach(post => initializePost(post));
+    posts.forEach(post => initializePost(post, postData));
 
     // ==========================================
     // 2. SEARCH MODAL & FILTER LOGIC
@@ -766,7 +832,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const repostCount = clone.querySelector('[repost-count]');
         repostCount.textContent = postData.repost_count;
 
-        initializePost(clone); // Initialize the new post's functionality so it can be liked, commented on, etc.
+        initializePost(clone, postData); // Initialize the new post's functionality so it can be liked, commented on, etc.
         if (isNew) {
             postContainer.prepend(clone); // Add new posts to the top of the feed
         } else {
@@ -831,52 +897,81 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-   function addGifAsComment(gifUrl) {
+   async function addGifAsComment(gifUrl) {
         if (!window.currentPostForGif) {
             alert("שגיאה: לא זוהה הפוסט אליו יש להוסיף את הגיפ.");
             return;
         }
         
         const currentPost = window.currentPostForGif;
+        const postId = currentPost.getAttribute('data-post-id'); // Retrieve the MongoDB ID stored on the post card
         
         // עכשיו בטוח נמצא את אזור התגובות בתוך הפוסט האמיתי
         const commentsList = currentPost.querySelector('.comments-list');
         const commentCountIconTxt = currentPost.querySelector('.comment-count-txt');
+        const commentCountDisplayTxt = currentPost.querySelector('.comment-count-display');
         const toggleCommentsBtn = currentPost.querySelector('.toggle-comments-btn');
         
-        if (!commentsList) {
+        if (!commentsList || !postId) {
             console.error("הפוסט שזוהה:", currentPost);
             alert("שגיאה: לא נמצא אזור התגובות בפוסט הזה.");
             return;
         }
 
-        // יצירת התגובה עם התמונה
-        const newComment = document.createElement('div');
-        newComment.classList.add('single-comment');
-        newComment.innerHTML = `<strong>${currentUser.username}</strong> <br> <img src="${gifUrl}" class="comment-gif" style="max-width: 150px; border-radius: 8px; margin-top: 5px;">`;
-        
-        // הוספה למסך
-        commentsList.appendChild(newComment);
-        commentsList.style.display = 'block'; 
-        
-        // עדכון המספרים בטקסט במידה וקיימים
-        if (commentCountIconTxt && toggleCommentsBtn) {
-            let currentCommentCount = parseInt(commentCountIconTxt.textContent.replace(/,/g, '')) || 0;
-            currentCommentCount++;
-            commentCountIconTxt.textContent = currentCommentCount.toLocaleString('en-US');
-            toggleCommentsBtn.innerHTML = `הסתר תגובות`;
+        try {
+            // Send the GIF comment to the backend server
+            const response = await fetch(`/api/posts/${postId}/comment`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    comment_content: gifUrl, 
+                    comment_type: 'gif' 
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                const newCommentObj = result.comment;
+                const currentCommentCount = result.comment_count;
+
+                // Create the comment element using the data returned from the server
+                const newComment = document.createElement('div');
+                newComment.classList.add('single-comment');
+                newComment.innerHTML = `<strong>${newCommentObj.username}</strong> <br> <img src="${newCommentObj.comment_content}" class="comment-gif" style="max-width: 150px; border-radius: 8px; margin-top: 5px;">`;
+                
+                // Add to DOM
+                commentsList.appendChild(newComment);
+                commentsList.style.display = 'block'; 
+                
+                // Update counts on the UI
+                if (commentCountIconTxt) {
+                    commentCountIconTxt.textContent = currentCommentCount.toLocaleString('en-US');
+                }
+                if (commentCountDisplayTxt) {
+                    commentCountDisplayTxt.textContent = currentCommentCount.toLocaleString('en-US');
+                }
+                if (toggleCommentsBtn) {
+                    toggleCommentsBtn.innerHTML = `הסתר תגובות`;
+                }
+                
+                // Scroll down and close modal
+                commentsList.scrollTop = commentsList.scrollHeight;
+                document.getElementById('gifModal').style.display = 'none';
+                document.getElementById('gifSearchInput').value = '';
+                document.getElementById('gifResultsContainer').innerHTML = '';
+                window.currentPostForGif = null;
+            } else {
+                alert(result.message || "שגיאה בשמירת תגובת הגיפ.");
+            }
+        } catch (error) {
+            console.error("Error adding GIF comment:", error);
+            alert("שגיאה בתקשורת מול השרת.");
         }
-        
-        // גלילה למטה וניקוי החלון
-        commentsList.scrollTop = commentsList.scrollHeight;
-        document.getElementById('gifModal').style.display = 'none';
-        document.getElementById('gifSearchInput').value = '';
-        document.getElementById('gifResultsContainer').innerHTML = '';
-        window.currentPostForGif = null;
     }
 
     // ==========================================
-    // 13. FACEBOOK POST LOGIC
+    // 11. FACEBOOK POST LOGIC
     // ==========================================
     const bestDayBtn = document.getElementById('bestDayBtn');
     
