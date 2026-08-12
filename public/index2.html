@@ -73,11 +73,6 @@
             <div id="topUsersGraph" style="width: 100%; display: flex; justify-content: center; overflow: hidden;"></div>
         </div>
 
-        <div id="userPostTypesWidget" style="position: absolute; top: 215px; right: 100px; width: 250px; height: 180px; background: white; border: 1px solid #dbdbdb; border-radius: 8px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 10;">
-            <h6 class="fw-bold text-center mb-2" style="font-size: 12px; color: #737373;">התפלגות סוגי הפוסטים שלי 📊</h6>
-            <div id="userPostTypesGraph" style="width: 100%; display: flex; justify-content: center; overflow: hidden;"></div>
-        </div>
-
 
         <div id="newPostMessage" class="new-post-message">
             יש פוסט חדש!
@@ -235,9 +230,6 @@
         <div class="new-post-modal-content modal-content">
             <span class="close-popup" id="closeCreate">&times;</span>
             <h5 class="mb-3 fw-bold">יצירת פוסט חדש</h5>
-            <select id="creator">
-                <option value="self"></option>
-            </select>
             <input type="file" id="mediaUpload" accept="image/*, video/*" placeholder="יש לגרור תמונות וסרטונים לכאן">
             <br>
             <input type="text" id="postText" placeholder="יש להוסיף טקסט, אם לא תעלה מדיה זה יהיה תוכן הפוסט">
@@ -339,7 +331,6 @@
                 <option value="all">משתמשים וקבוצות</option>
                 <option value="users">משתמשים</option>
                 <option value="groups">קבוצות</option>
-                <option value="my-groups">הקבוצות שלי</option>
             </select>
             <input type="text" id="liveUserSearchInput" class="search-input-box mb-3" placeholder="חפש/י לפי שם...">
             <input type="text" id="adminSearchInput" class="search-input-box mb-3" placeholder="חפש/י לפי שם מנהל הקבוצה...">
@@ -367,7 +358,19 @@
     </div>
 
    
-    <button id="openCreateGroupBtn" class="colorful-btn" style="position: fixed; bottom: 70px; left: 20px; z-index: 9999; padding: 10px 15px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer;">יצירת קבוצה 👥</button>
+  
+    <div style="position: fixed; bottom: 70px; left: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;">
+        
+        <!-- התפריט הנפתח (מוסתר כברירת מחדל) -->
+        <div id="groupActionMenu" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 5px;">
+            <button id="openCreateGroupBtn" class="colorful-btn" style="padding: 8px 15px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer;">יצירת קבוצה 👥</button>
+            <button id="openUpdateGroupBtn" class="colorful-btn" style="padding: 8px 15px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer;">עדכון קבוצה ✏️</button>
+            <button id="openDeleteGroupBtn" class="colorful-btn" style="padding: 8px 15px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; background: #ed4956;">מחיקת קבוצה 🗑️</button>
+        </div>
+
+        <!-- הכפתור הראשי -->
+        <button id="toggleGroupMenuBtn" class="colorful-btn" style="padding: 10px 15px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; background: linear-gradient(45deg, #d62976, #962fbf);">ניהול קבוצות ⚙️</button>
+    </div>
 
     <!-- מודל יצירת קבוצה -->
     <div id="createGroupModal" class="search-modal-overlay modal-overlay">
@@ -375,15 +378,14 @@
             <span class="close-popup" id="closeCreateGroup">&times;</span>
             <h5 class="mb-3 fw-bold">יצירת קבוצה חדשה</h5>
             <input type="text" id="newGroupNameInput" class="search-input-box mb-3" placeholder="הכנס את שם הקבוצה...">
-            <input type="file" id="newGroupProfileImageInput" accept="image/*" placeholder="העלה תמונת פרופיל לקבוצה (לא חובה)">
             <div id="createGroupError" class="error-message"></div>
             <button id="submitCreateGroupBtn" class="colorful-btn w-100 mt-2" style="background: #0095f6;">צור קבוצה</button>
         </div>
     </div>
 
 
-    <!-- כפתור צף למחיקת קבוצה -->
-    <button id="openDeleteGroupBtn" class="colorful-btn" style="position: fixed; bottom: 120px; left: 20px; z-index: 9999; padding: 10px 15px; border-radius: 8px; font-weight: bold; background: #ed4956; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer;">מחיקת קבוצה 🗑️</button>
+    
+    
 
     <!-- מודל מחיקת קבוצה -->
     <div id="deleteGroupModal" class="search-modal-overlay modal-overlay">
@@ -399,10 +401,10 @@
 
 
 
-        <!-- כפתור צף לעדכון שם קבוצה -->
-    <button id="openUpdateGroupBtn" class="colorful-btn" style="position: fixed; bottom: 170px; left: 20px; z-index: 9999; padding: 10px 15px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer;">עדכון קבוצה ✏️</button>
+        
+   
 
-    <!-- מודל לעדכון שם קבוצה -->
+   
     <div id="updateGroupModal" class="search-modal-overlay modal-overlay">
         <div class="modal-content" style="max-width: 400px;">
             <span class="close-popup" id="closeUpdateGroup">&times;</span>
@@ -434,7 +436,7 @@
 
 
        
-    <button id="openMapBtn" class="colorful-btn" style="position: fixed; bottom: 220px; left: 20px; z-index: 9999; padding: 10px 15px; border-radius: 8px; font-weight: bold; background: #28a745; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer;">מפת פוסטים 🌍</button>
+    <button id="openMapBtn" class="colorful-btn" style="position: fixed; bottom: 290px; left: 20px; z-index: 9999; padding: 10px 15px; border-radius: 8px; font-weight: bold; background: #28a745; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer;">מפת פוסטים 🌍</button>
 
     
     
@@ -457,7 +459,6 @@
             
         </div>
     </div>
-
     
     <script src="script1.js?v=3"></script>
 </body>

@@ -2064,6 +2064,30 @@ function drawUserPostTypeStatsGraph() {
               .attr("width", d => x(d.count));
         })
         .catch(err => console.error("Error fetching top users graph:", err));
+
+
+
+        // --- לוגיקה לפתיחה וסגירה של תפריט ניהול קבוצות ---
+    const toggleGroupMenuBtn = document.getElementById("toggleGroupMenuBtn");
+    const groupActionMenu = document.getElementById("groupActionMenu");
+
+    if (toggleGroupMenuBtn && groupActionMenu) {
+        toggleGroupMenuBtn.addEventListener("click", () => {
+            if (groupActionMenu.style.display === "none") {
+                groupActionMenu.style.display = "flex";
+            } else {
+                groupActionMenu.style.display = "none";
+            }
+        });
+        
+        // סגירת התפריט אם לוחצים במקום אחר במסך
+        document.addEventListener("click", (event) => {
+            if (!toggleGroupMenuBtn.contains(event.target) && !groupActionMenu.contains(event.target)) {
+                groupActionMenu.style.display = "none";
+            }
+        });
+    }
+    
 }
 
 drawUserPostTypeStatsGraph();
