@@ -482,26 +482,37 @@ document.addEventListener("DOMContentLoaded", function () {
     // ===========================================
     fetch('/api/posts')
     .then(response => response.json())
-    .then(postsArray => {postsArray.forEach((postData) => BuildPost(postData, false));}) // Call BuildPost for each post object in the array
+    .then(postsArray => {
+        if (Array.isArray(postsArray)) {
+            postsArray.forEach((postData) => {
+                try {
+                    BuildPost(postData, false);
+                } catch (error) {
+                    console.error("Failed to build post:", postData && postData._id, error);
+                }
+            });
+        }
+    }) // Call BuildPost for each post object in the array
     .catch(err => console.error("Failed to load posts:", err));
 
     function BuildPost(postData, isNew = false) {
         const templatePost = document.getElementById('templatePost');
         const clone = templatePost.content.cloneNode(true);
-        clone.querySelector('.post-card').setAttribute('data-post-id', postData._id); // Store the MongoDB _id for reference
+        const postCard = clone.querySelector('.post-card');
+        postCard.setAttribute('data-post-id', postData._id || ''); // Store the MongoDB _id for reference
 
         if (!isNew) {
             clone.querySelector('#newPostTag').style.display = 'none'; // Hide the new post tag for dynamically loaded existing posts
         }
 
         const userImage = clone.querySelector('[user-profile-image]');
-        userImage.src = postData.user_profile_image;
+        userImage.src = postData.user_profile_image || 'media/profile-pictures/default_profile.jpg';
 
         const usernameElement = clone.querySelector('[username]');
-        usernameElement.textContent = postData.username;
+        usernameElement.textContent = postData.username || 'demo_user';
 
         const uploadTimeElement = clone.querySelector('[upload-time]');
-        uploadTimeElement.textContent = postData.upload_time;
+        uploadTimeElement.textContent = postData.upload_time || '• עכשיו';
 
         const typingPopupElement = clone.querySelector('.user-typing-popup');
         if (typingPopupElement) {
@@ -517,12 +528,13 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         else if (postData.post_type === 'image') {
             mediaElement = document.createElement('img');
-            mediaElement.src = postData.post_content;
-            mediaElement.classList = "post-main-img";
+            mediaElement.src = encodeURI(postData.post_content);
+            mediaElement.alt = postData.caption || 'post image';
+            mediaElement.className = "post-main-img";
         }
         else {
             mediaElement = document.createElement('video');
-            mediaElement.src = postData.post_content;
+            mediaElement.src = encodeURI(postData.post_content);
             mediaElement.controls = true; // מוסיף כפתורי Play, Pause ועוצמת שמע
             mediaElement.className = "video-post";
         }
@@ -544,32 +556,57 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         const likeCount = clone.querySelector('[like-count]');
-        likeCount.textContent = postData.like_count;
+        likeCount.textContent = postData.like_count || '0';
 
         const likeCountDisplay = clone.querySelector('[like-count-display]');
-        likeCountDisplay.textContent = postData.like_count;
+        likeCountDisplay.textContent = postData.like_count || '0';
 
         const commentCount = clone.querySelector('[comment-count]');
-        commentCount.textContent = postData.comment_count;
+        commentCount.textContent = postData.comment_count || 0;
 
         const commentCountDisplay = clone.querySelector('[comment-count-display]');
-        commentCountDisplay.textContent = postData.comment_count;
+        commentCountDisplay.textContent = postData.comment_count || 0;
 
         const repostCount = clone.querySelector('[repost-count]');
-        repostCount.textContent = postData.repost_count;
+        repostCount.textContent = postData.repost_count || 0;
 
-        initializePost(clone); // Initialize the new post's functionality so it can be liked, commented on, etc.
         if (isNew) {
             postContainer.prepend(clone); // Add new posts to the top of the feed
         } else {
             postContainer.append(clone); // Add existing posts to the bottom of the feed
         }
+        initializePost(postCard); // Initialize the new post's functionality so it can be liked, commented on, etc.
 
         // Clear the form fields after adding the post
         postText.value = '';
         caption.value = '';
         mediaUpload.value = '';
     };
+
+    function drawDemoCanvas() {
+        const canvas = document.getElementById('demoCanvas');
+        if (!canvas || !canvas.getContext) return;
+
+        const ctx = canvas.getContext('2d');
+        const bars = [80, 45, 95, 60];
+        const labels = ['לייקים', 'תגובות', 'פוסטים', 'קבוצות'];
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = '14px Arial';
+        ctx.fillStyle = '#262626';
+        ctx.fillText('נתוני פעילות לדוגמה', 270, 20);
+
+        bars.forEach((value, index) => {
+            const x = 30 + index * 95;
+            const barHeight = value;
+            ctx.fillStyle = ['#f09433', '#dc2743', '#0095f6', '#28a745'][index];
+            ctx.fillRect(x, 105 - barHeight, 48, barHeight);
+            ctx.fillStyle = '#737373';
+            ctx.fillText(labels[index], x - 5, 118);
+        });
+    }
+
+    drawDemoCanvas();
 
     // ==========================================
     // 10. GIF SEARCH LOGIC (API INTEGRATION)

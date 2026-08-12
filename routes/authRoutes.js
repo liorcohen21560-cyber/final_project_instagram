@@ -7,6 +7,7 @@ const locationController = require('../controllers/locationControllers');
 
 
 router.post('/login', authController.login);
+router.post('/login-form', authController.loginForm);
 router.get('/index2.html', authController.protectFeed);
 router.post('/register', authController.register);
 router.delete('/delete-account', authController.deleteAccount);

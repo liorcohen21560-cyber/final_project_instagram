@@ -28,9 +28,22 @@ exports.getFeed = async (req, res) => {
 exports.createPost = async (req, res) => {
     try {
         let postContent = req.body.post_content;
+        const postType = ['text', 'image', 'video'].includes(req.body.post_type) ? req.body.post_type : 'text';
+
+        if (!req.body.username || typeof req.body.username !== 'string') {
+            return res.status(400).json({ success: false, message: "Missing username." });
+        }
+
+        if (!req.file && (!postContent || !postContent.trim())) {
+            return res.status(400).json({ success: false, message: "Post content is required." });
+        }
 
         // If a file was uploaded via GridFS, store the retrieval path/filename
         if (req.file) {
+            if (!req.file.mimetype.startsWith('image/') && !req.file.mimetype.startsWith('video/')) {
+                return res.status(400).json({ success: false, message: "Only image or video files are allowed." });
+            }
+
             const db = mongoose.connection.db;
             const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
             
@@ -53,7 +66,7 @@ exports.createPost = async (req, res) => {
         const postData = {
             username: req.body.username,
             user_profile_image: req.body.user_profile_image,
-            post_type: req.body.post_type,
+            post_type: req.file && req.file.mimetype.startsWith('video/') ? 'video' : postType,
             caption: req.body.caption,
             post_content: postContent
         };
@@ -68,6 +81,10 @@ exports.createPost = async (req, res) => {
 exports.deletePost = async (req, res) => {
     try {
         const { postId } = req.body; 
+        if (!/^[0-9a-fA-F]{24}$/.test(String(postId))) {
+            return res.status(400).json({ success: false, message: "Invalid post id." });
+        }
+
         const isDeleted = await postModel.deletePostById(postId);
         
         if (isDeleted) {

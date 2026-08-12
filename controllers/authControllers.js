@@ -3,40 +3,78 @@ const bcrypt = require('bcrypt');
 const User = require('../models/User');
 
 exports.login = async (req, res) => {
-    const { username, password } = req.body;
-    
-    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!username || !emailPattern.test(username)) {
-        return res.status(400).json({ success: false, message: "Invalid email format on server." });
-    }
-    
-    if (!password || password.length < 9) {
-        return res.status(400).json({ success: false, message: "Password must be at least 9 characters long." });
-    }
+    try {
+        const { username, password } = req.body;
+        
+        const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!username || !emailPattern.test(username)) {
+            return res.status(400).json({ success: false, message: "Invalid email format on server." });
+        }
+        
+        if (!password || password.length < 9) {
+            return res.status(400).json({ success: false, message: "Password must be at least 9 characters long." });
+        }
 
-    // Find the user by email
-    const user = await User.findOne({ email: username });
-    if (!user) {
-        return res.status(404).json({ success: false, message: "User not found" });
+        // Find the user by email
+        const user = await User.findOne({ email: username });
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        // Compare the incoming plaintext password with the stored hash
+        const isMatch = await bcrypt.compare(password, user.password);
+
+        if (isMatch) {
+            // Update the last_login field to the current date/time
+            await User.updateOne(
+                { email: username },
+                { $set: { last_login: new Date() } }
+            );
+
+            // Store the username and user_profile_image in the session
+            req.session.username = user.username;
+            req.session.user_profile_image = user.user_profile_image;
+
+            return res.status(200).json({ success: true });
+        } else {
+            return res.status(401).json({ success: false, message: "Invalid username or password." });
+        }
+    } catch (error) {
+        console.error("Login Error:", error);
+        return res.status(500).json({ success: false, message: "Server error during login." });
     }
+};
 
-    // Compare the incoming plaintext password with the stored hash
-    const isMatch = await bcrypt.compare(password, user.password);
+exports.loginForm = async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-    if (isMatch) {
-        // Update the last_login field to the current date/time
+        if (!username || !emailPattern.test(username) || !password || password.length < 9) {
+            return res.redirect('/');
+        }
+
+        const user = await User.findOne({ email: username });
+        if (!user) {
+            return res.redirect('/');
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.redirect('/');
+        }
+
         await User.updateOne(
             { email: username },
             { $set: { last_login: new Date() } }
         );
 
-        // Store the username and user_profile_image in the session
         req.session.username = user.username;
         req.session.user_profile_image = user.user_profile_image;
-
-        return res.status(200).json({ success: true });
-    } else {
-        return res.status(401).json({ success: false, message: "Invalid username or password." });
+        return res.redirect('/index2.html');
+    } catch (error) {
+        console.error("Login Form Error:", error);
+        return res.redirect('/');
     }
 };
 

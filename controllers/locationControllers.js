@@ -12,10 +12,14 @@ exports.getLocations = async (req, res) => {
 exports.addLocation = async (req, res) => {
     try {
         const { name, lat, lng } = req.body;
+        if (!name || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) {
+            return res.status(400).json({ success: false, message: "× ×ª×•× ×™ ×ž×™×§×•× ×œ× ×ª×§×™× ×™×" });
+        }
+
         const newLocation = new Location({ 
             name, 
-            lat, 
-            lng, 
+            lat: Number(lat), 
+            lng: Number(lng), 
             addedBy: req.session ? req.session.username : 'unknown' 
         });
         await newLocation.save();
@@ -29,6 +33,10 @@ exports.updateLocation = async (req, res) => {
     try {
         const { id } = req.params;
         const { newName } = req.body;
+        if (!newName || !newName.trim()) {
+            return res.status(400).json({ success: false, message: "×©× ×ž×™×§×•× ×—×¡×¨" });
+        }
+
         await Location.findByIdAndUpdate(id, { name: newName });
         res.status(200).json({ success: true, message: "המיקום עודכן בהצלחה" });
     } catch (error) {

