@@ -366,8 +366,20 @@
         </div>
     </div>
 
-   
-    <button id="openCreateGroupBtn" class="colorful-btn" style="position: fixed; bottom: 70px; left: 20px; z-index: 9999; padding: 10px 15px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer;">יצירת קבוצה 👥</button>
+    <!-- קונטיינר ראשי לניהול קבוצות -->
+    <div style="position: fixed; bottom: 70px; left: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;">
+        
+        <!-- התפריט הנפתח (מוסתר כברירת מחדל) -->
+        <div id="groupActionMenu" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 5px;">
+            <button id="openCreateGroupBtn" class="colorful-btn" style="padding: 8px 15px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer;">יצירת קבוצה 👥</button>
+            <button id="openUpdateGroupBtn" class="colorful-btn" style="padding: 8px 15px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer;">עדכון קבוצה ✏️</button>
+            <button id="openDeleteGroupBtn" class="colorful-btn" style="padding: 8px 15px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; background: #ed4956;">מחיקת קבוצה 🗑️</button>
+        </div>
+
+        <!-- הכפתור הראשי -->
+        <button id="toggleGroupMenuBtn" class="colorful-btn" style="padding: 10px 15px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; background: linear-gradient(45deg, #d62976, #962fbf);">ניהול קבוצות ⚙️</button>
+    </div>
+        
 
     <!-- מודל יצירת קבוצה -->
     <div id="createGroupModal" class="search-modal-overlay modal-overlay">
@@ -383,7 +395,7 @@
 
 
     <!-- כפתור צף למחיקת קבוצה -->
-    <button id="openDeleteGroupBtn" class="colorful-btn" style="position: fixed; bottom: 120px; left: 20px; z-index: 9999; padding: 10px 15px; border-radius: 8px; font-weight: bold; background: #ed4956; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer;">מחיקת קבוצה 🗑️</button>
+   
 
     <!-- מודל מחיקת קבוצה -->
     <div id="deleteGroupModal" class="search-modal-overlay modal-overlay">
@@ -399,8 +411,8 @@
 
 
 
-        <!-- כפתור צף לעדכון שם קבוצה -->
-    <button id="openUpdateGroupBtn" class="colorful-btn" style="position: fixed; bottom: 170px; left: 20px; z-index: 9999; padding: 10px 15px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer;">עדכון קבוצה ✏️</button>
+       
+  
 
     <!-- מודל לעדכון שם קבוצה -->
     <div id="updateGroupModal" class="search-modal-overlay modal-overlay">
@@ -434,7 +446,7 @@
 
 
        
-    <button id="openMapBtn" class="colorful-btn" style="position: fixed; bottom: 220px; left: 20px; z-index: 9999; padding: 10px 15px; border-radius: 8px; font-weight: bold; background: #28a745; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer;">מפת פוסטים 🌍</button>
+    <button id="openMapBtn" class="colorful-btn" style="position: fixed; bottom: 290px; left: 20px; z-index: 9999; padding: 10px 15px; border-radius: 8px; font-weight: bold; background: #28a745; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer;">מפת פוסטים 🌍</button>
 
     
     
