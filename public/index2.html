@@ -12,7 +12,7 @@
 </head>
 <body>
 
-    <div class="sidebar">
+    <nav class="sidebar">
         <div class="sidebar-item mt-2 mb-5">
             <img src="media/icons/insta.png" style="width: 40px;" class="sidebar-icon-img" alt="Logo">
         </div>
@@ -33,9 +33,9 @@
             <div class="sidebar-item" id="settings-btn"><img src="media/icons/tabs.png" class="sidebar-icon-img" alt="More"></div>
             <div class="sidebar-item"><img src="media/icons/meta.png" style="width: 30px; opacity: 0.7;" alt="Meta"></div>
         </div>
-    </div>
+    </nav>
 
-    <div class="main-content">
+    <section class="main-content">
         <div class="stories-container">
             <div class="story-item text-center">
                 <div class="story-ring"><img src="media/profile-pictures/sport%205.png" class="story-img-base" alt="Sport 5"></div>
@@ -88,16 +88,19 @@
 
         <template id="templatePost">
             <div class="post-card" data-post-id="">
-                <div class="post-header">
+                <header class="post-header">
                     <img user-profile-image src="media/profile-pictures/default_profile.jpg" class="post-user-avatar" alt="profile picture">
                     <strong username class="me-2">liorcohen299</strong>
                     <span upload-time class="text-muted small">• עכשיו</span>
                     <span id="newPostTag" class="small new-post-tag">#חדש!</span>
                     <div class="post-action-icon-top delete-icon"><img src="media/icons/delete.jpg" class="delete-btn-icon" alt="Delete"></div>
                     <div class="post-action-icon-top"><img src="media/icons/three dots.png" alt="Three Dots"></div>
-                </div>
+                </header>
             
                 <div post-content></div>
+                <video post-video controls muted style="width: 100%; display: none; border-radius: 4px; margin-top: 10px;">
+                    <source src="" type="video/mp4">
+                </video>
             
                 <div class="post-action-bar">
                     <div class="d-flex align-items-center">
@@ -145,9 +148,9 @@
             <button id="backToTopBtn" class="back-to-top-btn colorful-btn" title="Back to Top">בחזרה למעלה⬆</button>
         </div>
 
-    </div>
+    </section>
     <button id="bestDayBtn" class="best-day-btn">היה לי יום טוב!</button>
-    <div class="suggestions-side">
+    <aside class="suggestions-side">
         <div class="user-row">
             <div class="d-flex align-items-center">
                 <img src="media/profile-pictures/default_profile.jpg" class="suggestion-profile-img" alt="User">
@@ -182,33 +185,24 @@
             </div>
             <a href="#" class="follow-link">מעקב</a>
         </div>
-        <div class="footer">
+        <footer class="footer">
             <div class="footer-links">
-                    <a href="#">אודות</a>
-                    <div> . </div>
-                    <a href="#">עזרה</a>
-                    <div> . </div>
-                    <a href="#">עיתונות</a>
-                    <div> . </div>
-                    <a href="#">API</a>
-                    <div> . </div>
-                    <a href="#">משרות</a>
-                    <div> . </div>
-                    <a href="#">פרטיות</a>
-                    <div> . </div>
-                    <a href="#">תנאים</a>
-                    <div> . </div>
-                    <a href="#">מיקומים</a>
-                    <div> . </div>
-                    <a href="#">שפה</a>
-                    <div> . </div>
-                    <a href="#">Meta Verified</a>
+                <a href="#">אודות</a>
+                <a href="#">עזרה</a>
+                <a href="#">עיתונות</a>
+                <a href="#">API</a>
+                <a href="#">משרות</a>
+                <a href="#">פרטיות</a>
+                <a href="#">תנאים</a>
+                <a href="#">מיקומים</a>
+                <a href="#">שפה</a>
+                <a href="#">Meta Verified</a>
             </div>
             <div class="copyright">
                 <span dir="ltr">© 2026 INSTAGRAM FROM META</span>
             </div>
-        </div>
-    </div>
+        </footer>
+    </aside>
 
     <div id="searchModal" class="search-modal-overlay modal-overlay">
         <div class="search-modal-content modal-content">
@@ -472,5 +466,6 @@
 
     
     <script src="script1.js?v=3"></script>
+    <canvas id="effectsCanvas" style="position: fixed; top: 0; left: 0; pointer-events: none; z-index: 10000;"></canvas>
 </body>
 </html>

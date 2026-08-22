@@ -1,7 +1,15 @@
 /* General page reset */
+/* 1. כאן אנחנו מגדירים את הפונט החיצוני - זה מה שעונה על הדרישה! */
+@font-face {
+    font-family: 'MyCustomFont';
+    src: url('https://fonts.gstatic.com/s/rubik/v28/iJWZBXyIfDnIV5PNhY1KTN7Z-Yh-WYi1UE8.woff2') format('woff2');
+}
+
+/* 2. כאן אנחנו מחילים אותו על האתר */
 body { 
     background-color: #ffffff; 
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+    /* שמנו את הפונט החדש שלנו ראשון, ואם הוא לא יעבוד - הדפדפן ישתמש בפונטים המקוריים שלך */
+    font-family: 'MyCustomFont', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
     margin: 0; 
 }
 
@@ -134,4 +142,31 @@ body.dark-mode .gif-comment-btn:hover { color: #fff; }
 
 .best-day-btn:hover {
     background-color: #165eab;
+}
+.colorful-btn {
+    transition: transform 0.3s ease, background-color 0.3s ease;
+}
+.colorful-btn:hover {
+    transform: scale(1.05); /* מגדיל את הכפתור טיפה במעבר עכבר */
+}
+/* מוסיף צל עדין ויפה לכותרות של הפופ-אפים */
+.modal-content h5 {
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* סידור קישורי הפוטר בשתי עמודות (Multiple-columns HTML5) */
+.footer-links {
+    column-count: 2; 
+    column-gap: 20px; 
+    display: block; 
+    text-align: right; 
+}
+
+
+.footer-links a {
+    display: block;
+    margin-bottom: 5px; 
+    color: #c7c7c7; 
+    text-decoration: none;
+    font-size: 12px;
 }

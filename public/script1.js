@@ -973,9 +973,49 @@ document.addEventListener("DOMContentLoaded", function () {
     // ==========================================
     // 11. FACEBOOK POST LOGIC
     // ==========================================
+    // ==========================================
+    // 11. FACEBOOK POST LOGIC & CANVAS (HTML5)
+    // ==========================================
     const bestDayBtn = document.getElementById('bestDayBtn');
     
     if (bestDayBtn) {
+        // --- 1. ציור סמיילי על הקנבס של HTML5 ---
+        const canvas = document.getElementById('effectsCanvas');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            
+            // התאמת גודל הקנבס לחלון הנוכחי
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            bestDayBtn.addEventListener('click', () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // ניקוי הקנבס
+                
+                // ציור פרצוף
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2, canvas.height / 2, 100, 0, Math.PI * 2, true); 
+                ctx.fillStyle = "#ffcc00";
+                ctx.fill();
+                ctx.stroke();
+                
+                // ציור עיניים
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2 - 35, canvas.height / 2 - 20, 10, 0, Math.PI * 2, true); 
+                ctx.arc(canvas.width / 2 + 35, canvas.height / 2 - 20, 10, 0, Math.PI * 2, true); 
+                ctx.fillStyle = "black";
+                ctx.fill();
+                
+                // ציור פה מחייך
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2, canvas.height / 2 + 20, 50, 0, Math.PI, false); 
+                ctx.stroke();
+                
+                // העלמת הסמיילי אחרי 3 שניות
+                setTimeout(() => { ctx.clearRect(0, 0, canvas.width, canvas.height); }, 3000);
+            });
+        }
+
+        // --- 2. הלוגיקה המקורית של הפייסבוק שלך ---
         bestDayBtn.addEventListener('click', async function() {
             const originalText = bestDayBtn.textContent;
             bestDayBtn.textContent = 'מפרסם...';
