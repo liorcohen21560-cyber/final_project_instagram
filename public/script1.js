@@ -83,73 +83,6 @@ async function fetchCurrentUser() {
 fetchCurrentUser();
 
 document.addEventListener("DOMContentLoaded", function () {
-
-    /*const currentUser = {
-        username: "liorcohen299", // Fallback default
-        profileImage: "media/profile-pictures/default_profile.jpg", // Fallback default
-        groupAdmin: [],
-        groupMemberships: []
-    };
-
-    const groupImageMap = {};
-    let selectedProfileImage = currentUser.profileImage;
-
-    // save the logged in user values for use in the script
-    async function fetchCurrentUser() {
-        try {
-            const response = await fetch('/api/current-user');
-            if (response.ok) {
-                const data = await response.json();
-                if (data.username) {
-                    currentUser.username = data.username;
-
-                    // Update the username in the suggestions section
-                    const suggestionUsernameElement = document.querySelector('.suggestions-side .user-row .fw-bold');
-                    if (suggestionUsernameElement) {
-                        suggestionUsernameElement.textContent = data.username;
-                    }
-
-                }
-                if (data.user_profile_image) {
-                    currentUser.profileImage = data.user_profile_image;
-                    selectedProfileImage = data.user_profile_image;
-
-                    // Update the profile image in the sidebar
-                    const myProfileImgElement = document.querySelector('#profile-btn img');
-                    if (myProfileImgElement) {
-                        myProfileImgElement.src = data.user_profile_image;
-                    }
-
-                    // Update the profile image in the suggestions section
-                    const suggestionProfileImgElement = document.querySelector('.suggestions-side .user-row img');
-                    if (suggestionProfileImgElement) {
-                        suggestionProfileImgElement.src = data.user_profile_image;
-                    }
-
-                }
-
-                if (data.group_admin) {
-                    currentUser.groupAdmin = data.group_admin;
-
-                    currentUser.groupAdmin.forEach(group => {
-                        const groupName = group.group_name;
-                        const groupImg = group.group_profile_image || 'media/profile-pictures/default_profile.jpg';
-                    
-                        groupImageMap[groupName] = groupImg;
-                    });
-                }
-
-                if (data.group_memberships) {
-                    currentUser.groupMemberships = data.group_memberships;
-                }
-            }
-        } catch (error) {
-            console.error("Could not fetch current session user:", error);
-        }
-    }
-
-    fetchCurrentUser();*/
-    
     const posts = document.querySelectorAll('.post-card');
     const postContainer = document.getElementById('postsContainer');
 
@@ -201,6 +134,18 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
 
                     likeBtnImg.src = isLiked ? RED_LIKE_SRC : ORIGINAL_LIKE_SRC;
+
+                    // Update liker preview dynamically on click
+                    const likerPreview = post.querySelector('.post-liker-preview');
+                    if (result.liked_by_usernames && result.liked_by_usernames.length > 0) {
+                        const firstLiker = result.liked_by_usernames[0];
+                        likerPreview.textContent = `• אהוב על ידי ${firstLiker}`;
+                        likerPreview.style.display = 'inline';
+                    } else {
+                        likerPreview.textContent = '';
+                        likerPreview.style.display = 'none';
+                    }
+
                 } else {
                     alert(result.message || "שגיאה בביצוע לייק.");
                 }
@@ -822,6 +767,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const likeCountDisplay = clone.querySelector('[like-count-display]');
         likeCountDisplay.textContent = postData.like_count;
+
+        // Render initial liker preview if available
+        const likerPreview = clone.querySelector('.post-liker-preview');
+        if (postData.liked_by_usernames && postData.liked_by_usernames.length > 0) {
+            const firstLiker = postData.liked_by_usernames[0];
+            likerPreview.textContent = `• אהוב על ידי ${firstLiker}`;
+            likerPreview.style.display = 'inline';
+        }
 
         const commentCount = clone.querySelector('[comment-count]');
         commentCount.textContent = postData.comment_count;
