@@ -785,6 +785,76 @@ document.addEventListener("DOMContentLoaded", function () {
         const repostCount = clone.querySelector('[repost-count]');
         repostCount.textContent = postData.repost_count;
 
+
+        
+        const threeDotsBtn = clone.querySelector('.three-dots-btn');
+        const threeDotsDropdown = clone.querySelector('.three-dots-dropdown');
+        const editCaptionOption = clone.querySelector('.edit-caption-option');
+
+        if (threeDotsBtn && threeDotsDropdown) {
+           
+            threeDotsBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); 
+                
+                const isVisible = threeDotsDropdown.style.display === 'block';
+                
+              
+                document.querySelectorAll('.three-dots-dropdown').forEach(dropdown => {
+                    dropdown.style.display = 'none';
+                });
+
+               
+                if (!isVisible) {
+                    threeDotsDropdown.style.display = 'block';
+                }
+            });
+
+            
+            if (postData.username === currentUser.username) {
+                editCaptionOption.style.display = 'block';
+                
+                editCaptionOption.addEventListener('click', async function(e) {
+                    e.stopPropagation(); 
+                    threeDotsDropdown.style.display = 'none'; 
+
+                    const currentCaption = postData.caption || "";
+                    const newCaption = prompt("ערוך את כיתוב הפוסט שלך:", currentCaption);
+                    
+                    if (newCaption !== null && newCaption.trim() !== currentCaption) {
+                        try {
+                            const response = await fetch(`/api/posts/${postData._id}/caption`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ caption: newCaption.trim() })
+                            });
+                            
+                            const result = await response.json();
+                            if (response.ok && result.success) {
+                                
+                                postData.caption = newCaption.trim();
+                                if (captionElement) {
+                                    const strongEl = captionElement.querySelector('strong');
+                                    captionElement.innerHTML = '';
+                                    if (strongEl) captionElement.appendChild(strongEl);
+                                    captionElement.append(' ' + postData.caption);
+                                }
+                            } else {
+                                alert(result.message || "שגיאה בעדכון הכיתוב.");
+                            }
+                        } catch (error) {
+                            console.error("Error updating caption:", error);
+                            alert("שגיאה בתקשורת מול השרת.");
+                        }
+                    }
+                });
+            } else {
+                
+                editCaptionOption.style.display = 'none';
+            }
+        }
+       
+
+
         initializePost(clone, postData); // Initialize the new post's functionality so it can be liked, commented on, etc.
         if (isNew) {
             postContainer.prepend(clone); // Add new posts to the top of the feed
@@ -976,9 +1046,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
             try {
                 // פונים לראוט שהכנו בשרת 
+                // פונים לראוט שהכנו בשרת ושולחים לו את שם המשתמש
                 const response = await fetch('/api/facebook/post', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: currentUser.username }) // <-- הוספנו את השורה הזו!
                 });
                 
                 const result = await response.json();
@@ -2104,3 +2176,10 @@ function drawUserPostTypeStatsGraph() {
 }
 
 drawUserPostTypeStatsGraph();
+
+
+window.addEventListener('click', () => {
+    document.querySelectorAll('.three-dots-dropdown').forEach(dropdown => {
+        dropdown.style.display = 'none';
+    });
+});

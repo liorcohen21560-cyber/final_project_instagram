@@ -128,8 +128,8 @@ exports.searchGifs = (req, res) => {
     
 };
 
-// ==========================================
-// פונקציה לפרסום פוסט בדף הפייסבוק
+
+// פונקציה לפרסום פוסט בדף הפייסבוק (דינמי)
 // ==========================================
 exports.postToFacebook = (req, res) => {
     const https = require('https');
@@ -137,7 +137,12 @@ exports.postToFacebook = (req, res) => {
     // שולפים את הסודות שלנו מקובץ ה-.env
     const pageId = process.env.FB_PAGE_ID;
     const accessToken = process.env.FB_ACCESS_TOKEN;
-    const message = "היה לי היום את היום הכי טוב כבר תקופה"; // ההודעה שביקשת
+    
+    // 1. שולפים את שם המשתמש (מהבקשה של הלקוח או מהסשן, ואם אין - נכתוב משתמש אנונימי)
+    const currentAppUser = req.body.username || (req.session && req.session.username ? req.session.username : 'משתמש אנונימי');
+    
+    // 2. ההודעה הדינמית שכוללת את שם המשתמש!
+    const message = `המשתמש/ת ${currentAppUser} מוסר/ת: היה לי היום את היום הכי טוב כבר תקופה! 🚀`;
 
     // מכינים את החבילה שתשלח לפייסבוק
     const postData = JSON.stringify({
@@ -342,5 +347,38 @@ exports.addComment = async (req, res) => {
     } catch (error) {
         console.error("Add Comment Error:", error);
         return res.status(500).json({ success: false, message: "Server error adding comment." });
+    }
+};
+
+// ==========================================
+// עריכת כיתוב של פוסט (רק ליוצר הפוסט)
+// ==========================================
+exports.updatePostCaption = async (req, res) => {
+    try {
+        const currentUsername = req.session ? req.session.username : null;
+        if (!currentUsername) {
+            return res.status(401).json({ success: false, message: "Unauthorized. Please log in." });
+        }
+
+        const postId = req.params.id;
+        const { caption } = req.body;
+
+        const post = await Post.findById(postId);
+        if (!post) {
+            return res.status(404).json({ success: false, message: "הפוסט לא נמצא." });
+        }
+
+        // מוודאים שרק מי שיצר את הפוסט יכול לערוך אותו
+        if (post.username !== currentUsername) {
+            return res.status(403).json({ success: false, message: "אין לך הרשאה לערוך פוסטים של אחרים." });
+        }
+
+        post.caption = caption;
+        await post.save();
+
+        return res.status(200).json({ success: true, message: "הכיתוב עודכן בהצלחה." });
+    } catch (error) {
+        console.error("Update Caption Error:", error);
+        return res.status(500).json({ success: false, message: "שגיאת שרת בעדכון הכיתוב." });
     }
 };

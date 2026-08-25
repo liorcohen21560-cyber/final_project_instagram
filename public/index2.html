@@ -94,7 +94,15 @@
                     <span upload-time class="text-muted small">• עכשיו</span>
                     <span id="newPostTag" class="small new-post-tag">#חדש!</span>
                     <div class="post-action-icon-top delete-icon"><img src="media/icons/delete.jpg" class="delete-btn-icon" alt="Delete"></div>
-                    <div class="post-action-icon-top"><img src="media/icons/three dots.png" alt="Three Dots"></div>
+                   
+                    <div class="post-action-icon-top three-dots-container" style="position: relative;">
+                        <img src="media/icons/three dots.png" class="three-dots-btn" alt="Three Dots" style="cursor: pointer;">
+                        
+                       
+                        <div class="three-dots-dropdown" style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #dbdbdb; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 10; min-width: 120px; padding: 5px 0;">
+                            <div class="edit-caption-option" style="padding: 8px 15px; font-size: 13px; cursor: pointer; text-align: center; color: #262626;">ערוך כיתוב ✏️</div>
+                        </div>
+                    </div>
                 </header>
             
                 <div post-content></div>
@@ -444,7 +452,7 @@
 
 
        
-    <button id="openMapBtn" class="colorful-btn" style="position: fixed; bottom: 290px; left: 20px; z-index: 9999; padding: 10px 15px; border-radius: 8px; font-weight: bold; background: #28a745; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer;">מפת פוסטים 🌍</button>
+    <button id="openMapBtn" class="colorful-btn" style="position: fixed; bottom: 290px; left: 20px; z-index: 9999; padding: 10px 15px; border-radius: 8px; font-weight: bold; background: #28a745; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer;">מפת מקומות הכי טובים 🌍</button>
 
     
     
@@ -459,7 +467,7 @@
             </div>
             
             
-            <h5 class="mb-1 fw-bold" style="text-align: center;">מפת פוסטים עולמית (Google Maps)</h5>
+            <h5 class="mb-1 fw-bold" style="text-align: center;">מפת מקומות הכי טובים (Google Maps)</h5>
             <p style="font-size: 13px; color: #737373; text-align: center; margin-bottom: 15px;">לחץ על המפה כדי להוסיף מיקום חדש, או לחץ על סיכה כדי לערוך/למחוק.</p>
             
             
