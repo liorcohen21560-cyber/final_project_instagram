@@ -1766,6 +1766,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 loadMapMarkers();
 
+               
                 myMap.addListener("click", (mapsMouseEvent) => {
                     const lat = mapsMouseEvent.latLng.lat();
                     const lng = mapsMouseEvent.latLng.lng();
@@ -1781,6 +1782,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         .then(data => {
                             if (data.success) {
                                 loadMapMarkers(); 
+                            } else {
+                                // הקפצת השגיאה מהשרת (לדוגמה: "כבר יש לך מיקום במפה!")
+                                alert(data.message); 
                             }
                         });
                     }
@@ -1813,13 +1817,29 @@ document.addEventListener("DOMContentLoaded", function () {
                             title: loc.name
                         });
                         
+                        // כאן הלוגיקה שמחליטה מה להציג בחלון הקופץ!
+                        let actionButtonsHtml = "";
+                        
+                        // אם המשתמש המחובר הוא מי שיצר את הסיכה
+                        if (currentUser && currentUser.username === loc.addedBy) {
+                            actionButtonsHtml = `
+                                <hr style="margin: 8px 0;">
+                                <button onclick="editLocation('${loc._id}', '${loc.name}')" style="background:#0095f6; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px; margin-left: 5px;">ערוך שלי</button>
+                                <button onclick="deleteLocation('${loc._id}')" style="background:#ed4956; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">מחק שלי</button>
+                            `;
+                        } else {
+                            // אם זו סיכה של מישהו אחר, מציגים רק מי הוסיף אותה ללא כפתורי עריכה
+                            actionButtonsHtml = `
+                                <hr style="margin: 8px 0;">
+                                <div style="font-size: 11px; color: #888;">נוסף ע"י: <strong>${loc.addedBy}</strong></div>
+                            `;
+                        }
+
                         const infoWindow = new google.maps.InfoWindow({
                             content: `
                                 <div style="text-align: center; min-width: 120px;">
                                     <strong style="font-size: 14px;">${loc.name}</strong><br>
-                                    <hr style="margin: 8px 0;">
-                                    <button onclick="editLocation('${loc._id}', '${loc.name}')" style="background:#0095f6; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px; margin-left: 5px;">ערוך</button>
-                                    <button onclick="deleteLocation('${loc._id}')" style="background:#ed4956; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">מחק</button>
+                                    ${actionButtonsHtml}
                                 </div>
                             `
                         });
