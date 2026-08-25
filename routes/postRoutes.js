@@ -18,6 +18,7 @@ router.get('/api/gifs', postController.searchGifs);
 router.get('/statistics/top-users', postController.getTopActiveUsers);
 router.get('/statistics/user-post-types', postController.getUserPostTypeStats);
 router.post('/api/facebook/post', postController.postToFacebook);
+router.put('/api/posts/:id/caption', postController.updatePostCaption);
 
 // File retrieval route to stream media from MongoDB GridFS back to the frontend
 router.get('/api/posts/file/:filename', async (req, res) => {
