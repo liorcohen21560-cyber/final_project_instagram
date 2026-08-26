@@ -76,7 +76,27 @@ exports.createPost = async (req, res) => {
 
 exports.deletePost = async (req, res) => {
     try {
-        const { postId } = req.body; 
+        const { postId } = req.body;
+        const currentUsername = req.session.username;
+        const sessionGroupAdmin = req.session.group_admin || [];
+
+        if (!currentUsername) {
+            return res.status(401).json({ success: false, message: "Unauthorized." });
+        }
+
+        const post = await Post.findById(postId);
+        if (!post) {
+            return res.status(404).json({ success: false, message: "Post not found." });
+        }
+
+        const isAuthor = post.username === currentUsername;
+
+        const isAdminOfGroup = sessionGroupAdmin.includes(post.username);
+
+        if (!isAuthor && !isAdminOfGroup) {
+            return res.status(403).json({ success: false, message: "אין לך הרשאה למחוק פוסט זה." });
+        }
+
         const isDeleted = await postModel.deletePostById(postId);
         
         if (isDeleted) {
@@ -356,6 +376,8 @@ exports.addComment = async (req, res) => {
 exports.updatePostCaption = async (req, res) => {
     try {
         const currentUsername = req.session ? req.session.username : null;
+        const sessionGroupAdmin = req.session ? req.session.group_admin || [] : [];
+
         if (!currentUsername) {
             return res.status(401).json({ success: false, message: "Unauthorized. Please log in." });
         }
@@ -369,7 +391,10 @@ exports.updatePostCaption = async (req, res) => {
         }
 
         // מוודאים שרק מי שיצר את הפוסט יכול לערוך אותו
-        if (post.username !== currentUsername) {
+        const isAuthor = post.username === currentUsername;
+        const isAdminOfGroup = sessionGroupAdmin.includes(post.username);
+        
+        if (!isAuthor && !isAdminOfGroup) {
             return res.status(403).json({ success: false, message: "אין לך הרשאה לערוך פוסטים של אחרים." });
         }
 

@@ -168,20 +168,64 @@ document.addEventListener("DOMContentLoaded", function () {
         const gifBtn = post.querySelector('.gif-comment-btn');
         if (gifBtn) {
             gifBtn.addEventListener('click', function(event) {
-                // תופסים את הפוסט האמיתי שעל המסך ישירות מתוך אירוע הלחיצה
-                const livePostCard = event.target.closest('.post-card');
-                
-                if (!livePostCard) {
-                    alert("שגיאה: לא הצלחתי לזהות את הפוסט מהמסך.");
-                    return;
-                }
-                
-                window.currentPostForGif = livePostCard; 
+                window.currentPostForGif = post; 
+                window.currentAddGifHandler = handleGifSubmission;
                 document.getElementById('gifModal').style.display = 'flex';
                 document.getElementById('gifSearchInput').focus();
             });
         }
-        // --------------------------------------------------
+
+        // Handle GIF submission from the modal, API integration
+        async function handleGifSubmission(gifUrl) {
+            try {
+                // Send the GIF comment to the backend server
+                const response = await fetch(`/api/posts/${postData._id}/comment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        comment_content: gifUrl, 
+                        comment_type: 'gif' 
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    const newCommentObj = result.comment;
+                    currentCommentCount = result.comment_count; // Updates the local counter!
+
+                    // Create the comment element using the data returned from the server
+                    const newCommentDiv = document.createElement('div');
+                    newCommentDiv.classList.add('single-comment');
+                    newCommentDiv.innerHTML = `<strong>${newCommentObj.username}</strong> <img src="${newCommentObj.comment_content}" style="max-height: 100px; display: block; margin-top: 4px;">`;
+                    
+                    // Add to DOM
+                    commentsList.appendChild(newCommentDiv);
+                    commentsList.style.display = 'block'; 
+                    isCommentsVisible = true;
+
+                    // Update UI counts immediately
+                    commentCountIconTxt.textContent = currentCommentCount.toLocaleString('en-US');
+                    if (commentCountDisplayTxt) {
+                        commentCountDisplayTxt.textContent = currentCommentCount.toLocaleString('en-US');
+                    }
+                    toggleCommentsBtn.innerHTML = `הסתר תגובות`;
+                    
+                    // Scroll down and close modal
+                    commentsList.scrollTop = commentsList.scrollHeight;
+                    document.getElementById('gifModal').style.display = 'none';
+                    document.getElementById('gifSearchInput').value = '';
+                    document.getElementById('gifResultsContainer').innerHTML = '';
+                    window.currentPostForGif = null;
+                    window.currentAddGifHandler = null;
+                } else {
+                    alert(result.message || "שגיאה בשמירת תגובת הגיפ.");
+                }
+            } catch (error) {
+                console.error("Error adding GIF comment:", error);
+                alert("שגיאה בתקשורת מול השרת.");
+            }
+        }
 
         const userTypingPopup = post.querySelector('.user-typing-popup');
         const commentInput = post.querySelector('.comment-input');
@@ -319,6 +363,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (searchBtn) {
         searchBtn.addEventListener('click', function() {
+            closeAllModals(); // סוגר את כל השאר קודם
             searchModal.style.display = 'flex';
         });
     }
@@ -471,6 +516,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Hide select dropdown if user manages no groups
                 creatorSelect.style.display = 'none';
             }
+            closeAllModals(); // סוגר את כל השאר קודם
             newPostModal.style.display = 'flex';
         });
     }
@@ -606,6 +652,12 @@ document.addEventListener("DOMContentLoaded", function () {
             if (postCard) {
                 // Get the MongoDB _id from the data attribute of the post card
                 const postId = postCard.getAttribute('data-post-id');
+
+                if (!currentUser || !currentUser.username) {
+                    alert("עליך להתחבר כדי למחוק פוסט.");
+                    return;
+                }
+
                 fetch('/api/posts/delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -620,6 +672,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         // Refresh the graphs after a post is deleted
                         drawTopUsersGraph();
                         drawUserPostTypeStatsGraph();
+                    } else {
+                        alert(result.message || "אין לך הרשאה למחוק פוסט זה.");
                     }
                 })
                 .catch(err => console.error("Error deleting post:", err));
@@ -713,6 +767,24 @@ document.addEventListener("DOMContentLoaded", function () {
             clone.querySelector('#newPostTag').style.display = 'none'; // Hide the new post tag for dynamically loaded existing posts
         }
 
+        // Show or hide the delete and three dots icon based on user permissions
+        const deleteIconWrapper = clone.querySelector('.delete-icon');
+        const threeDotsIconWrapper = clone.querySelector('.three-dots-container');
+        if (deleteIconWrapper) {
+            const isAuthor = currentUser && currentUser.username && postData.username === currentUser.username;
+            
+            // Check if postData.username matches any group name the user is an admin of
+            const isAdminOfGroup = currentUser && currentUser.groupAdmin && currentUser.groupAdmin.some(group => group.group_name === postData.username);
+
+            if (isAuthor || isAdminOfGroup) {
+                deleteIconWrapper.style.display = 'block';
+                threeDotsIconWrapper.style.display = 'block';
+            } else {
+                deleteIconWrapper.style.display = 'none';
+                threeDotsIconWrapper.style.display = 'none';
+            }
+        }
+
         const userImage = clone.querySelector('[user-profile-image]');
         userImage.src = postData.user_profile_image;
 
@@ -784,12 +856,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const repostCount = clone.querySelector('[repost-count]');
         repostCount.textContent = postData.repost_count;
-
-
         
         const threeDotsBtn = clone.querySelector('.three-dots-btn');
         const threeDotsDropdown = clone.querySelector('.three-dots-dropdown');
         const editCaptionOption = clone.querySelector('.edit-caption-option');
+
+        // Determine permissions for both deleting and editing
+        const isAuthor = currentUser && currentUser.username && postData.username === currentUser.username;
+        const isAdminOfGroup = currentUser && currentUser.groupAdmin && currentUser.groupAdmin.some(group => group.group_name === postData.username);
+        const hasPermission = isAuthor || isAdminOfGroup;
 
         if (threeDotsBtn && threeDotsDropdown) {
            
@@ -810,7 +885,7 @@ document.addEventListener("DOMContentLoaded", function () {
             });
 
             
-            if (postData.username === currentUser.username) {
+            if (hasPermission && editCaptionOption) {
                 editCaptionOption.style.display = 'block';
                 
                 editCaptionOption.addEventListener('click', async function(e) {
@@ -893,7 +968,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 data.gifs.forEach(gifUrl => {
                     const img = document.createElement('img');
                     img.src = gifUrl;
-                    img.addEventListener('click', () => addGifAsComment(gifUrl));
+                    img.addEventListener('click', () => {
+                        if (window.currentAddGifHandler) {
+                            window.currentAddGifHandler(gifUrl);
+                        } else {
+                            alert("שגיאה: לא זוהה הפוסט אליו יש להוסיף את הגיפ.");
+                        }
+                    });
                     gifResultsContainer.appendChild(img);
                 });
             } else {
@@ -920,82 +1001,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-   async function addGifAsComment(gifUrl) {
-        if (!window.currentPostForGif) {
-            alert("שגיאה: לא זוהה הפוסט אליו יש להוסיף את הגיפ.");
-            return;
-        }
-        
-        const currentPost = window.currentPostForGif;
-        const postId = currentPost.getAttribute('data-post-id'); // Retrieve the MongoDB ID stored on the post card
-        
-        // עכשיו בטוח נמצא את אזור התגובות בתוך הפוסט האמיתי
-        const commentsList = currentPost.querySelector('.comments-list');
-        const commentCountIconTxt = currentPost.querySelector('.comment-count-txt');
-        const commentCountDisplayTxt = currentPost.querySelector('.comment-count-display');
-        const toggleCommentsBtn = currentPost.querySelector('.toggle-comments-btn');
-        
-        if (!commentsList || !postId) {
-            console.error("הפוסט שזוהה:", currentPost);
-            alert("שגיאה: לא נמצא אזור התגובות בפוסט הזה.");
-            return;
-        }
-
-        try {
-            // Send the GIF comment to the backend server
-            const response = await fetch(`/api/posts/${postId}/comment`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    comment_content: gifUrl, 
-                    comment_type: 'gif' 
-                })
-            });
-
-            const result = await response.json();
-
-            if (response.ok && result.success) {
-                const newCommentObj = result.comment;
-                const currentCommentCount = result.comment_count;
-
-                // Create the comment element using the data returned from the server
-                const newComment = document.createElement('div');
-                newComment.classList.add('single-comment');
-                newComment.innerHTML = `<strong>${newCommentObj.username}</strong> <br> <img src="${newCommentObj.comment_content}" class="comment-gif" style="max-width: 150px; border-radius: 8px; margin-top: 5px;">`;
-                
-                // Add to DOM
-                commentsList.appendChild(newComment);
-                commentsList.style.display = 'block'; 
-                
-                // Update counts on the UI
-                if (commentCountIconTxt) {
-                    commentCountIconTxt.textContent = currentCommentCount.toLocaleString('en-US');
-                }
-                if (commentCountDisplayTxt) {
-                    commentCountDisplayTxt.textContent = currentCommentCount.toLocaleString('en-US');
-                }
-                if (toggleCommentsBtn) {
-                    toggleCommentsBtn.innerHTML = `הסתר תגובות`;
-                }
-                
-                // Scroll down and close modal
-                commentsList.scrollTop = commentsList.scrollHeight;
-                document.getElementById('gifModal').style.display = 'none';
-                document.getElementById('gifSearchInput').value = '';
-                document.getElementById('gifResultsContainer').innerHTML = '';
-                window.currentPostForGif = null;
-            } else {
-                alert(result.message || "שגיאה בשמירת תגובת הגיפ.");
-            }
-        } catch (error) {
-            console.error("Error adding GIF comment:", error);
-            alert("שגיאה בתקשורת מול השרת.");
-        }
-    }
-
-    // ==========================================
-    // 11. FACEBOOK POST LOGIC
-    // ==========================================
     // ==========================================
     // 11. FACEBOOK POST LOGIC & CANVAS (HTML5)
     // ==========================================
@@ -1292,6 +1297,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (openUserSearchBtn && userSearchModal) {
        openUserSearchBtn.addEventListener("click", () => {
+            closeAllModals(); // סוגר את כל השאר קודם
             userSearchModal.style.display = "flex";
             drawGroupMembersGraph(); 
         });
@@ -1673,7 +1679,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (openCreateGroupBtn && createGroupModal) {
         // פתיחה וסגירה של החלון
-        openCreateGroupBtn.addEventListener("click", () => createGroupModal.style.display = "flex");
+        openCreateGroupBtn.addEventListener("click", () => {
+            closeAllModals(); // סוגר את כל השאר קודם
+            createGroupModal.style.display = "flex"
+        });
         closeCreateGroup.addEventListener("click", () => createGroupModal.style.display = "none");
         window.addEventListener("click", (e) => {
             if (e.target === createGroupModal) createGroupModal.style.display = "none";
@@ -1729,7 +1738,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const deleteGroupError = document.getElementById("deleteGroupError");
 
     if (openDeleteGroupBtn && deleteGroupModal) {
-        openDeleteGroupBtn.addEventListener("click", () => deleteGroupModal.style.display = "flex");
+        openDeleteGroupBtn.addEventListener("click", () => {
+            closeAllModals(); // סוגר את כל השאר קודם
+            deleteGroupModal.style.display = "flex"}
+        );
         closeDeleteGroup.addEventListener("click", () => deleteGroupModal.style.display = "none");
         window.addEventListener("click", (e) => {
             if (e.target === deleteGroupModal) deleteGroupModal.style.display = "none";
@@ -1778,7 +1790,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const updateGroupError = document.getElementById("updateGroupError");
 
     if (openUpdateGroupBtn && updateGroupModal) {
-        openUpdateGroupBtn.addEventListener("click", () => updateGroupModal.style.display = "flex");
+        openUpdateGroupBtn.addEventListener("click", () => {
+            closeAllModals(); // סוגר את כל השאר קודם
+            updateGroupModal.style.display = "flex"
+        });
         closeUpdateGroup.addEventListener("click", () => updateGroupModal.style.display = "none");
         window.addEventListener("click", (e) => {
             if (e.target === updateGroupModal) updateGroupModal.style.display = "none";
@@ -1826,6 +1841,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (openMapBtn && mapModal) {
         openMapBtn.addEventListener("click", () => {
+            closeAllModals(); // סוגר את כל השאר קודם
             mapModal.style.display = "flex";
             
             if (!myMap) {
@@ -2183,3 +2199,15 @@ window.addEventListener('click', () => {
         dropdown.style.display = 'none';
     });
 });
+
+function closeAllModals() {
+    // רשימה של כל ה-IDs של המודאלים שלך במערכת
+    const modalIds = ["createGroupModal", "deleteGroupModal", "updateGroupModal", "userSearchModal", "mapModal", "newPostModal", "searchModal"];
+    
+    modalIds.forEach(id => {
+        const modal = document.getElementById(id);
+        if (modal) {
+            modal.style.display = "none";
+        }
+    });
+}
