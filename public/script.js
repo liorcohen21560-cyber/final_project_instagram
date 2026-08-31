@@ -2,6 +2,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("loginForm");
 
     form.addEventListener("submit", function (event) {
+        // Prevent form from refreshing the page
+        event.preventDefault();
+
         const usernameInput = document.getElementById("username").value.trim();
         const passwordInput = document.getElementById("password").value.trim();
         const usernameError = document.getElementById("usernameError");
@@ -40,8 +43,26 @@ document.addEventListener("DOMContentLoaded", function () {
             passwordError.style.display = "none";
         }
 
-        if (!isValid) {
-            event.preventDefault();
+        // --- 2. Send to Server ---
+        // Proceed only if client-side validation is successful
+        if (isValid) {
+            fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: usernameInput, password: passwordInput })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Redirect to the feed page
+                    window.location.href = "index2.html";
+                } else {
+                    // Display server error message (e.g., incorrect credentials)
+                    usernameError.textContent = data.message;
+                    usernameError.style.display = "block";
+                }
+            })
+            .catch(err => console.error("Error connecting to server:", err));
         }
     });
 

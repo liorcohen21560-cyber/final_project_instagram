@@ -5,45 +5,41 @@ const Post = require('../models/Post');
 
 exports.getFeed = async (req, res) => {
     try {
-        const posts = await postModel.getAllPosts();
+        const currentUsername = req.session ? req.session.username : null;
 
-        // Format posts so the frontend receives the correct user_profile_image from User collection
-        const formattedPosts = posts.map(post => {
-            const postObj = post.toObject ? post.toObject() : post;
-            
-            // If authorDetails was found via virtual populate, override the profile image
-            if (postObj.authorDetails && postObj.authorDetails.user_profile_image) {
-                postObj.user_profile_image = postObj.authorDetails.user_profile_image;
-            }
-            
-            return postObj;
-        });
+        if (!currentUsername) {
+            return res.status(401).json({ success: false, message: "Unauthorized. Please log in." });
+        }
+
+        const posts = await postModel.getAllPosts(currentUsername);
         
-        res.json(formattedPosts);
+        res.json(posts);
     } catch (error) {
         res.status(500).json({ success: false, message: "Server error fetching feed." });
     }
 };
 
+exports.getMyPosts = async (req, res) => {
+    try {
+        const currentUsername = req.session ? req.session.username : null;
+
+        if (!currentUsername) {
+            return res.status(401).json({ success: false, message: "Unauthorized. Please log in." });
+        }
+
+        const posts = await postModel.getUserOnlyPosts(currentUsername);
+        res.json(posts);
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Server error fetching my posts." });
+    }
+}
+
 exports.createPost = async (req, res) => {
     try {
         let postContent = req.body.post_content;
-        const postType = ['text', 'image', 'video'].includes(req.body.post_type) ? req.body.post_type : 'text';
-
-        if (!req.body.username || typeof req.body.username !== 'string') {
-            return res.status(400).json({ success: false, message: "Missing username." });
-        }
-
-        if (!req.file && (!postContent || !postContent.trim())) {
-            return res.status(400).json({ success: false, message: "Post content is required." });
-        }
 
         // If a file was uploaded via GridFS, store the retrieval path/filename
         if (req.file) {
-            if (!req.file.mimetype.startsWith('image/') && !req.file.mimetype.startsWith('video/')) {
-                return res.status(400).json({ success: false, message: "Only image or video files are allowed." });
-            }
-
             const db = mongoose.connection.db;
             const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
             
@@ -66,7 +62,7 @@ exports.createPost = async (req, res) => {
         const postData = {
             username: req.body.username,
             user_profile_image: req.body.user_profile_image,
-            post_type: req.file && req.file.mimetype.startsWith('video/') ? 'video' : postType,
+            post_type: req.body.post_type,
             caption: req.body.caption,
             post_content: postContent
         };
@@ -80,9 +76,25 @@ exports.createPost = async (req, res) => {
 
 exports.deletePost = async (req, res) => {
     try {
-        const { postId } = req.body; 
-        if (!/^[0-9a-fA-F]{24}$/.test(String(postId))) {
-            return res.status(400).json({ success: false, message: "Invalid post id." });
+        const { postId } = req.body;
+        const currentUsername = req.session.username;
+        const sessionGroupAdmin = req.session.group_admin || [];
+
+        if (!currentUsername) {
+            return res.status(401).json({ success: false, message: "Unauthorized." });
+        }
+
+        const post = await Post.findById(postId);
+        if (!post) {
+            return res.status(404).json({ success: false, message: "Post not found." });
+        }
+
+        const isAuthor = post.username === currentUsername;
+
+        const isAdminOfGroup = sessionGroupAdmin.includes(post.username);
+
+        if (!isAuthor && !isAdminOfGroup) {
+            return res.status(403).json({ success: false, message: "אין לך הרשאה למחוק פוסט זה." });
         }
 
         const isDeleted = await postModel.deletePostById(postId);
@@ -136,8 +148,8 @@ exports.searchGifs = (req, res) => {
     
 };
 
-// ==========================================
-// פונקציה לפרסום פוסט בדף הפייסבוק
+
+// פונקציה לפרסום פוסט בדף הפייסבוק (דינמי)
 // ==========================================
 exports.postToFacebook = (req, res) => {
     const https = require('https');
@@ -145,7 +157,12 @@ exports.postToFacebook = (req, res) => {
     // שולפים את הסודות שלנו מקובץ ה-.env
     const pageId = process.env.FB_PAGE_ID;
     const accessToken = process.env.FB_ACCESS_TOKEN;
-    const message = "היה לי היום את היום הכי טוב כבר תקופה"; // ההודעה שביקשת
+    
+    // 1. שולפים את שם המשתמש (מהבקשה של הלקוח או מהסשן, ואם אין - נכתוב משתמש אנונימי)
+    const currentAppUser = req.body.username || (req.session && req.session.username ? req.session.username : 'משתמש אנונימי');
+    
+    // 2. ההודעה הדינמית שכוללת את שם המשתמש!
+    const message = `המשתמש/ת ${currentAppUser} מוסר/ת: היה לי היום את היום הכי טוב כבר תקופה! 🚀`;
 
     // מכינים את החבילה שתשלח לפייסבוק
     const postData = JSON.stringify({
@@ -220,5 +237,173 @@ exports.getTopActiveUsers = async (req, res) => {
     } catch (error) {
         console.error("Top Users Stats Error:", error);
         return res.status(500).json({ success: false, message: "שגיאה בשליפת נתוני משתמשים פעילים." });
+    }
+};
+
+exports.getUserPostTypeStats = async (req, res) => {
+    try {
+        const username = req.session.username;
+        const stats = await Post.aggregate([
+            {
+                $match: { username: username } // Filter for a specific user
+            },
+            {
+                $group: {
+                    _id: "$username",
+                    totalPosts: { $sum: 1 },
+                    textCount: {
+                        $sum: { $cond: [{ $eq: ["$post_type", "text"] }, 1, 0] }
+                    },
+                    imageCount: {
+                        $sum: { $cond: [{ $eq: ["$post_type", "image"] }, 1, 0] }
+                    },
+                    videoCount: {
+                        $sum: { $cond: [{ $eq: ["$post_type", "video"] }, 1, 0] }
+                    }
+                }
+            }
+        ]);
+
+        // If the user hasn't posted anything yet, return zero counts
+        const userStats = stats.length > 0 ? stats[0] : { totalPosts: 0, textCount: 0, imageCount: 0, videoCount: 0 };
+
+        return res.status(200).json({ success: true, data: userStats });
+    } catch (error) {
+        console.error("Post Type Stats Error:", error);
+        return res.status(500).json({ success: false, message: "שגיאה בשליפת סטטיסטיקת סוגי פוסטים." });
+    }
+};
+
+exports.toggleLike = async (req, res) => {
+    try {
+        const currentUsername = req.session ? req.session.username : null;
+
+        if (!currentUsername) {
+            return res.status(401).json({ success: false, message: "Unauthorized. Please log in." });
+        }
+
+        const postId = req.params.id;
+        const post = await Post.findById(postId);
+
+        if (!post) {
+            return res.status(404).json({ success: false, message: "Post not found." });
+        }
+
+        // Ensure liked_by_usernames is initialized as an array
+        if (!Array.isArray(post.liked_by_usernames)) {
+            post.liked_by_usernames = [];
+        }
+
+        const hasLiked = post.liked_by_usernames.includes(currentUsername);
+
+        let updateQuery;
+        if (hasLiked) {
+            // Remove user from liked_by_usernames
+            updateQuery = { $pull: { liked_by_usernames: currentUsername } };
+        } else {
+            // Add user to liked_by_usernames
+            updateQuery = { $push: { liked_by_usernames: currentUsername } };
+        }
+
+        // Perform update and get the updated document
+        const updatedPost = await Post.findByIdAndUpdate(postId, updateQuery, { new: true });
+
+        // Update like_count to match the exact size of the array
+        updatedPost.like_count = updatedPost.liked_by_usernames.length;
+        await updatedPost.save();
+
+        return res.status(200).json({
+            success: true,
+            liked: !hasLiked,
+            like_count: updatedPost.like_count
+        });
+
+    } catch (error) {
+        console.error("Toggle Like Error:", error);
+        return res.status(500).json({ success: false, message: "Server error toggling like." });
+    }
+};
+
+exports.addComment = async (req, res) => {
+    try {
+        const currentUsername = req.session ? req.session.username : null;
+        if (!currentUsername) {
+            return res.status(401).json({ success: false, message: "Unauthorized. Please log in." });
+        }
+
+        const postId = req.params.id;
+        const { comment_content, comment_type } = req.body;
+
+        if (!comment_content) {
+            return res.status(400).json({ success: false, message: "Comment content is required." });
+        }
+
+        const newComment = {
+            username: currentUsername,
+            comment_content: comment_content,
+            comment_type: comment_type || 'text',
+            createdAt: new Date()
+        };
+
+        const updatedPost = await Post.findByIdAndUpdate(
+            postId,
+            { 
+                $push: { comments: newComment },
+                $inc: { comment_count: 1 }
+            },
+            { new: true }
+        );
+
+        if (!updatedPost) {
+            return res.status(404).json({ success: false, message: "Post not found." });
+        }
+
+        return res.status(200).json({
+            success: true,
+            comment: newComment,
+            comment_count: updatedPost.comment_count
+        });
+
+    } catch (error) {
+        console.error("Add Comment Error:", error);
+        return res.status(500).json({ success: false, message: "Server error adding comment." });
+    }
+};
+
+// ==========================================
+// עריכת כיתוב של פוסט (רק ליוצר הפוסט)
+// ==========================================
+exports.updatePostCaption = async (req, res) => {
+    try {
+        const currentUsername = req.session ? req.session.username : null;
+        const sessionGroupAdmin = req.session ? req.session.group_admin || [] : [];
+
+        if (!currentUsername) {
+            return res.status(401).json({ success: false, message: "Unauthorized. Please log in." });
+        }
+
+        const postId = req.params.id;
+        const { caption } = req.body;
+
+        const post = await Post.findById(postId);
+        if (!post) {
+            return res.status(404).json({ success: false, message: "הפוסט לא נמצא." });
+        }
+
+        // מוודאים שרק מי שיצר את הפוסט יכול לערוך אותו
+        const isAuthor = post.username === currentUsername;
+        const isAdminOfGroup = sessionGroupAdmin.includes(post.username);
+        
+        if (!isAuthor && !isAdminOfGroup) {
+            return res.status(403).json({ success: false, message: "אין לך הרשאה לערוך פוסטים של אחרים." });
+        }
+
+        post.caption = caption;
+        await post.save();
+
+        return res.status(200).json({ success: true, message: "הכיתוב עודכן בהצלחה." });
+    } catch (error) {
+        console.error("Update Caption Error:", error);
+        return res.status(500).json({ success: false, message: "שגיאת שרת בעדכון הכיתוב." });
     }
 };

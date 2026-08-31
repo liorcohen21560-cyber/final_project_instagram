@@ -1,27 +1,90 @@
 const Post = require('./Post'); // Import the Mongoose model
+const User = require('./User'); // Import the Mongoose model
+const Group = require('./Group'); // Import the Mongoose model
 
 module.exports = {
-    // Fetch all posts from MongoDB, sorted by newest first
-    getAllPosts: async () => {
+    // Fetch all posts posted by user's friends and groups from MongoDB, sorted by newest first
+    getAllPosts: async (currentUsername) => {
         try {
-            const posts = await Post.find()
-            .populate('authorDetails', "user_profile_image")
-            .sort({ createdAt: -1 });
+            // Fetch the current user to get their friends list and group memberships
+            const currentUser = await User.findOne({ username: currentUsername });
+
+            let allowedCreators = []; // Always include the user themselves
+
+            if (currentUser) {
+                // Add friends if they exist
+                if (currentUser.friends && Array.isArray(currentUser.friends)) {
+                    allowedCreators.push(...currentUser.friends);
+                }
+                // Add group memberships if they exist
+                if (currentUser.group_memberships && Array.isArray(currentUser.group_memberships)) {
+                    allowedCreators.push(...currentUser.group_memberships);
+                }
+            }
+
+            // Build the dynamic query filter
+            // This checks if the post's username belongs to the user/friends, 
+            // OR if the post belongs to one of the groups the user is in.
+            const queryFilter = {
+                username: { $in: allowedCreators }
+            };
+
+            // Fetch filtered posts from the database
+            const posts = await Post.find(queryFilter)
+                .populate('authorDetails', "user_profile_image")
+                .sort({ createdAt: -1 });
+
+            // Fetch all relevant groups at once to map their profile images quickly
+            const groupNamesInPosts = [...new Set(posts.map(p => p.username))];
+            const groups = await Group.find({ group_name: { $in: groupNamesInPosts } });
+            const groupImageMap = {};
+            groups.forEach(g => {
+                groupImageMap[g.group_name] = g.group_profile_image;
+            });
 
             // Map through the posts to inject the fallback logic for legacy documents
             return posts.map(post => {
                 const postObj = post.toObject ? post.toObject() : post;
-                
-                // If the post is missing user_profile_image, fall back to the User collection or a default image
-                if (!postObj.user_profile_image || postObj.user_profile_image === "") {
+            
+                // If the author is a group and has a custom image in the Group collection, use it!
+                if (groupImageMap[postObj.username] && groupImageMap[postObj.username] !== 'media/profile-pictures/default_profile.jpg') {
+                    postObj.user_profile_image = groupImageMap[postObj.username];
+                } 
+                // Otherwise, fall back to author details or default
+                else if (!postObj.user_profile_image || postObj.user_profile_image === "" || postObj.user_profile_image === "media/profile-pictures/default_profile.jpg") {
                     postObj.user_profile_image = postObj.authorDetails?.user_profile_image || 'media/profile-pictures/default_profile.jpg';
                 }
-                
+            
                 return postObj;
             });
 
         } catch (error) {
-            console.error("Error fetching posts:", error);
+            console.error("Error fetching filtered posts:", error);
+            throw error;
+        }
+    },
+
+    // Fetch only the posts created by the current user, sorted by newest first
+    getUserOnlyPosts: async (currentUsername) => {
+    try {
+            const queryFilter = { username: currentUsername };
+
+            const posts = await Post.find(queryFilter)
+                .populate('authorDetails', "user_profile_image")
+                .sort({ createdAt: -1 });
+
+            return posts.map(post => {
+                const postObj = post.toObject ? post.toObject() : post;
+        
+                if (!postObj.user_profile_image || postObj.user_profile_image === "" || postObj.user_profile_image === "media/profile-pictures/default_profile.jpg") {
+                    postObj.user_profile_image = postObj.authorDetails?.user_profile_image || 'media/profile-pictures/default_profile.jpg';
+                }
+        
+                return postObj;
+            });
+
+        } catch (error) {
+            console.error("Error fetching user-only posts:", error);
             throw error;
         }
     },

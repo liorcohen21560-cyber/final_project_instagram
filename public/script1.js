@@ -9,55 +9,80 @@
  * Part 8: Share Post (Simulate share action with alert)
  * Part 9: Create Existing Posts Dynamically (Use the postObjects array to generate posts on page load)
  * Part 10: GIF Search Logic (API Integration, Display GIFs, Select and Insert into Comment)
+ * Part 11: Facebook Post Logic (Send post data to backend for Facebook posting)
  */
-document.addEventListener("DOMContentLoaded", function () {
 
-    const currentUser = {
-        username: "liorcohen299", // Fallback default
-        profileImage: "media/profile-pictures/default_profile.png" // Fallback default
-    };
+const currentUser = {
+    username: "liorcohen299", // Fallback default
+    profileImage: "media/profile-pictures/default_profile.jpg", // Fallback default
+    groupAdmin: [],
+    groupMemberships: [],
+    friends: []
+};
 
-    // save the logged in user values for use in the script
-    async function fetchCurrentUser() {
-        try {
-            const response = await fetch('/api/current-user');
-            if (response.ok) {
-                const data = await response.json();
-                if (data.username) {
-                    currentUser.username = data.username;
+const groupImageMap = {};
+let selectedProfileImage = currentUser.profileImage;
 
-                    // Update the username in the suggestions section
-                    const suggestionUsernameElement = document.querySelector('.suggestions-side .user-row .fw-bold');
-                    if (suggestionUsernameElement) {
-                        suggestionUsernameElement.textContent = data.username;
-                    }
+// save the logged in user values for use in the script
+async function fetchCurrentUser() {
+    try {
+        const response = await fetch('/api/current-user');
+        if (response.ok) {
+            const data = await response.json();
+            if (data.username) {
+                currentUser.username = data.username;
 
+                // Update the username in the suggestions section
+                const suggestionUsernameElement = document.querySelector('.suggestions-side .user-row .fw-bold');
+                if (suggestionUsernameElement) {
+                    suggestionUsernameElement.textContent = data.username;
                 }
-                if (data.user_profile_image) {
-                    currentUser.profileImage = data.user_profile_image;
-                    console.log("Current user profile image:", currentUser.profileImage);
 
-                    // Update the profile image in the sidebar
-                    const myProfileImgElement = document.querySelector('#profile-btn img');
-                    if (myProfileImgElement) {
-                        myProfileImgElement.src = data.user_profile_image;
-                    }
+            }
+            if (data.user_profile_image) {
+                currentUser.profileImage = data.user_profile_image;
+                selectedProfileImage = data.user_profile_image;
 
-                    // Update the profile image in the suggestions section
-                    const suggestionProfileImgElement = document.querySelector('.suggestions-side .user-row img');
-                    if (suggestionProfileImgElement) {
-                        suggestionProfileImgElement.src = data.user_profile_image;
-                    }
+                // Update the profile image in the sidebar
+                const myProfileImgElement = document.querySelector('#profile-btn img');
+                if (myProfileImgElement) {
+                    myProfileImgElement.src = data.user_profile_image;
+                }
 
+                // Update the profile image in the suggestions section
+                const suggestionProfileImgElement = document.querySelector('.suggestions-side .user-row img');
+                if (suggestionProfileImgElement) {
+                    suggestionProfileImgElement.src = data.user_profile_image;
                 }
             }
-        } catch (error) {
-            console.error("Could not fetch current session user:", error);
-        }
-    }
 
-    fetchCurrentUser();
-    
+            if (data.group_admin) {
+                currentUser.groupAdmin = data.group_admin;
+
+                currentUser.groupAdmin.forEach(group => {
+                    const groupName = group.group_name;
+                    const groupImg = group.group_profile_image || 'media/profile-pictures/default_profile.jpg';
+                    
+                    groupImageMap[groupName] = groupImg;
+                });
+            }
+
+            if (data.group_memberships) {
+                currentUser.groupMemberships = data.group_memberships;
+            }
+
+            if (data.friends) {
+                currentUser.friends = data.friends;
+            }
+        }
+    } catch (error) {
+        console.error("Could not fetch current session user:", error);
+    }
+}
+
+fetchCurrentUser();
+
+document.addEventListener("DOMContentLoaded", function () {
     const posts = document.querySelectorAll('.post-card');
     const postContainer = document.getElementById('postsContainer');
 
@@ -67,33 +92,67 @@ document.addEventListener("DOMContentLoaded", function () {
     const ORIGINAL_LIKE_SRC = "media/icons/like.png";
     const RED_LIKE_SRC = "media/icons/red_like.png";
 
-    function initializePost(post) {
+    function initializePost(post, postData) {
         const likeBtnImg = post.querySelector('.like-btn-img');
         const likeCountIconText = post.querySelector('.like-count-txt'); 
         const likeCountDisplayText = post.querySelector('.like-count-display'); 
         
         if (!likeBtnImg || !likeCountIconText) return;
 
-        let isLiked = false;
-        const rawText = likeCountIconText.textContent.replace(/,/g, '');
-        const baseLikes = parseInt(rawText);
+        // Check if the current user has already liked this post from the database data
+        let isLiked = currentUser && postData.liked_by_usernames && postData.liked_by_usernames.includes(currentUser.username);
+        likeBtnImg.src = isLiked ? RED_LIKE_SRC : ORIGINAL_LIKE_SRC;
 
-        likeBtnImg.addEventListener('click', function () {
+        let currentLikes = postData.like_count || 0;
+
+        likeBtnImg.addEventListener('click', async function () {
+            // Prevent multiple rapid clicks if needed
+            if (likeBtnImg.dataset.loading === "true") return;
+            likeBtnImg.dataset.loading = "true";
+
             likeBtnImg.classList.remove('liked-animation');
             void likeBtnImg.offsetWidth; 
             likeBtnImg.classList.add('liked-animation');
 
-            if (!isLiked) {
-                let newCount = baseLikes + 1;
-                likeCountIconText.textContent = newCount.toLocaleString('en-US');
-                if(likeCountDisplayText) likeCountDisplayText.textContent = newCount.toLocaleString('en-US');
-                likeBtnImg.src = RED_LIKE_SRC;
-                isLiked = true; 
-            } else {
-                likeCountIconText.textContent = baseLikes.toLocaleString('en-US');
-                if(likeCountDisplayText) likeCountDisplayText.textContent = baseLikes.toLocaleString('en-US');
-                likeBtnImg.src = ORIGINAL_LIKE_SRC;
-                isLiked = false; 
+            try {
+                // Send request to backend toggle like route
+                const response = await fetch(`/api/posts/${postData._id}/like`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+            
+                if (response.ok && result.success) {
+                    isLiked = result.liked;
+                    currentLikes = result.like_count;
+
+                    // Update UI text and image based on backend response
+                    likeCountIconText.textContent = currentLikes.toLocaleString('en-US');
+                    if (likeCountDisplayText) {
+                        likeCountDisplayText.textContent = currentLikes.toLocaleString('en-US');
+                    }
+
+                    likeBtnImg.src = isLiked ? RED_LIKE_SRC : ORIGINAL_LIKE_SRC;
+
+                    // Update liker preview dynamically on click
+                    const likerPreview = post.querySelector('.post-liker-preview');
+                    if (result.liked_by_usernames && result.liked_by_usernames.length > 0) {
+                        const firstLiker = result.liked_by_usernames[0];
+                        likerPreview.textContent = `• אהוב על ידי ${firstLiker}`;
+                        likerPreview.style.display = 'inline';
+                    } else {
+                        likerPreview.textContent = '';
+                        likerPreview.style.display = 'none';
+                    }
+
+                } else {
+                    alert(result.message || "שגיאה בביצוע לייק.");
+                }
+            } catch (error) {
+                console.error("Error toggling like:", error);
+            } finally {
+                likeBtnImg.dataset.loading = "false";
             }
         });
 
@@ -104,41 +163,95 @@ document.addEventListener("DOMContentLoaded", function () {
         const toggleCommentsBtn = post.querySelector('.toggle-comments-btn'); 
         const commentsList = post.querySelector('.comments-list');
         const addCommentSection = post.querySelector('.add-comment-section');
-
-        
-       
       
        // תופסים את כפתור ה-GIF שכבר קיים ב-HTML
         const gifBtn = post.querySelector('.gif-comment-btn');
         if (gifBtn) {
             gifBtn.addEventListener('click', function(event) {
-                // תופסים את הפוסט האמיתי שעל המסך ישירות מתוך אירוע הלחיצה
-                const livePostCard = event.target.closest('.post-card');
-                
-                if (!livePostCard) {
-                    alert("שגיאה: לא הצלחתי לזהות את הפוסט מהמסך.");
-                    return;
-                }
-                
-                window.currentPostForGif = livePostCard; 
+                window.currentPostForGif = post; 
+                window.currentAddGifHandler = handleGifSubmission;
                 document.getElementById('gifModal').style.display = 'flex';
                 document.getElementById('gifSearchInput').focus();
             });
         }
-        // --------------------------------------------------
+
+        // Handle GIF submission from the modal, API integration
+        async function handleGifSubmission(gifUrl) {
+            try {
+                // Send the GIF comment to the backend server
+                const response = await fetch(`/api/posts/${postData._id}/comment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        comment_content: gifUrl, 
+                        comment_type: 'gif' 
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    const newCommentObj = result.comment;
+                    currentCommentCount = result.comment_count; // Updates the local counter!
+
+                    // Create the comment element using the data returned from the server
+                    const newCommentDiv = document.createElement('div');
+                    newCommentDiv.classList.add('single-comment');
+                    newCommentDiv.innerHTML = `<strong>${newCommentObj.username}</strong> <img src="${newCommentObj.comment_content}" style="max-height: 100px; display: block; margin-top: 4px;">`;
+                    
+                    // Add to DOM
+                    commentsList.appendChild(newCommentDiv);
+                    commentsList.style.display = 'block'; 
+                    isCommentsVisible = true;
+
+                    // Update UI counts immediately
+                    commentCountIconTxt.textContent = currentCommentCount.toLocaleString('en-US');
+                    if (commentCountDisplayTxt) {
+                        commentCountDisplayTxt.textContent = currentCommentCount.toLocaleString('en-US');
+                    }
+                    toggleCommentsBtn.innerHTML = `הסתר תגובות`;
+                    
+                    // Scroll down and close modal
+                    commentsList.scrollTop = commentsList.scrollHeight;
+                    document.getElementById('gifModal').style.display = 'none';
+                    document.getElementById('gifSearchInput').value = '';
+                    document.getElementById('gifResultsContainer').innerHTML = '';
+                    window.currentPostForGif = null;
+                    window.currentAddGifHandler = null;
+                } else {
+                    alert(result.message || "שגיאה בשמירת תגובת הגיפ.");
+                }
+            } catch (error) {
+                console.error("Error adding GIF comment:", error);
+                alert("שגיאה בתקשורת מול השרת.");
+            }
+        }
+
         const userTypingPopup = post.querySelector('.user-typing-popup');
         const commentInput = post.querySelector('.comment-input');
         const postCommentBtn = post.querySelector('.post-comment-btn');
         const commentCountIconTxt = post.querySelector('.comment-count-txt');
         const commentCountDisplayTxt = post.querySelector('.comment-count-display');
 
-
-        
-
         if (!toggleCommentsBtn || !commentsList || !commentInput || !postCommentBtn) return;
 
-        let currentCommentCount = parseInt(commentCountIconTxt.textContent.replace(/,/g, ''));
+        let currentCommentCount = postData.comment_count || 0;
         let isCommentsVisible = false;
+
+        // --- Render existing comments from DB on load ---
+        if (postData.comments && Array.isArray(postData.comments)) {
+            commentsList.innerHTML = ''; // Clear previous if any
+            postData.comments.forEach(c => {
+                const commentDiv = document.createElement('div');
+                commentDiv.classList.add('single-comment');
+                if (c.comment_type === 'gif') {
+                    commentDiv.innerHTML = `<strong>${c.username}</strong> <img src="${c.comment_content}" style="max-height: 100px; display: block; margin-top: 4px;">`;
+                } else {
+                    commentDiv.innerHTML = `<strong>${c.username}</strong> ${c.comment_content}`;
+                }
+                commentsList.appendChild(commentDiv);
+            });
+        }
 
         function toggleCommentSection() {
             isCommentsVisible = !isCommentsVisible;
@@ -170,28 +283,61 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
-        function addComment() {
+        async function addComment(content = null, type = 'text') {
             userTypingPopup.style.display = 'none';
-            const commentText = commentInput.value.trim();
-            if (commentText === '') return;
 
-            const newComment = document.createElement('div');
-            newComment.classList.add('single-comment');
-            newComment.innerHTML = `<strong>${currentUser.username}</strong> ${commentText}`;
-
-            commentsList.appendChild(newComment);
-
-            currentCommentCount++;
-            commentCountIconTxt.textContent = currentCommentCount.toLocaleString('en-US');
-            
-            if (!isCommentsVisible) {
-                toggleCommentsBtn.innerHTML = `הצג את כל <span class="comment-count-display">${currentCommentCount.toLocaleString('en-US')}</span> התגובות`;
+            // Ensure content is actually a clean string, not a browser Event object
+            let commentText = "";
+            if (typeof content === 'string') {
+                commentText = content.trim();
+            } else {
+                commentText = commentInput.value.trim();
             }
 
-            commentInput.value = '';
-            postCommentBtn.setAttribute('disabled', 'true');
+            if (commentText === '') return;
 
-            commentsList.scrollTop = commentsList.scrollHeight;
+            try {
+                const response = await fetch(`/api/posts/${postData._id}/comment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ comment_content: commentText, comment_type: type })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    const newCommentObj = result.comment;
+                    currentCommentCount = result.comment_count;
+
+                    const newCommentDiv = document.createElement('div');
+                    newCommentDiv.classList.add('single-comment');
+                    
+                    if (newCommentObj.comment_type === 'gif') {
+                        newCommentDiv.innerHTML = `<strong>${newCommentObj.username}</strong> <img src="${newCommentObj.comment_content}" style="max-height: 100px; display: block; margin-top: 4px;">`;
+                    } else {
+                        newCommentDiv.innerHTML = `<strong>${newCommentObj.username}</strong> ${newCommentObj.comment_content}`;
+                    }
+
+                    commentsList.appendChild(newCommentDiv);
+
+                    commentCountIconTxt.textContent = currentCommentCount.toLocaleString('en-US');
+                    if (commentCountDisplayTxt) {
+                        commentCountDisplayTxt.textContent = currentCommentCount.toLocaleString('en-US');
+                    }
+                    
+                    if (!isCommentsVisible) {
+                        toggleCommentsBtn.innerHTML = `הצג את כל <span class="comment-count-display">${currentCommentCount.toLocaleString('en-US')}</span> התגובות`;
+                    }
+
+                    commentInput.value = '';
+                    postCommentBtn.setAttribute('disabled', 'true');
+                    commentsList.scrollTop = commentsList.scrollHeight;
+                } else {
+                    alert(result.message || "שגיאה בשמירת התגובה.");
+                }
+            } catch (error) {
+                console.error("Error adding comment:", error);
+            }
         }
 
         postCommentBtn.addEventListener('click', addComment);
@@ -204,7 +350,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    posts.forEach(post => initializePost(post));
+    posts.forEach(post => initializePost(post, postData));
 
     // ==========================================
     // 2. SEARCH MODAL & FILTER LOGIC
@@ -217,6 +363,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (searchBtn) {
         searchBtn.addEventListener('click', function() {
+            closeAllModals(); // סוגר את כל השאר קודם
             searchModal.style.display = 'flex';
         });
     }
@@ -343,10 +490,47 @@ document.addEventListener("DOMContentLoaded", function () {
     const uploadPostBtn = document.getElementById('uploadPostBtn');
     const templatePost = document.getElementById('templatePost');
     const uploadError = document.getElementById("uploadError");
+    const creatorSelect = document.getElementById('creator');
 
     if (createPostBtn) {
         createPostBtn.addEventListener('click', function() {
+            // Check if user is admin of at least one group
+            if (currentUser.groupAdmin && currentUser.groupAdmin.length > 0) {
+                creatorSelect.style.display = 'block';
+                creatorSelect.innerHTML = ''; // Clear previous options
+
+                // Default Option: The user themselves
+                const selfOption = document.createElement('option');
+                selfOption.value = currentUser.username;
+                selfOption.textContent = currentUser.username;
+                creatorSelect.appendChild(selfOption);
+
+                // Group Options: Add each group name details from groupAdmin
+                currentUser.groupAdmin.forEach(group => {
+                    const groupOption = document.createElement('option');
+                    groupOption.value = group.group_name;
+                    groupOption.textContent = group.group_name;
+                    creatorSelect.appendChild(groupOption);
+                });
+            } else {
+                // Hide select dropdown if user manages no groups
+                creatorSelect.style.display = 'none';
+            }
+            closeAllModals(); // סוגר את כל השאר קודם
             newPostModal.style.display = 'flex';
+        });
+    }
+
+    // Listen for changes if the user switches the creator dropdown
+    if (creatorSelect) {
+        creatorSelect.addEventListener('change', function() {
+            const chosenValue = creatorSelect.value;
+
+            if (chosenValue === currentUser.username) {
+                selectedProfileImage = currentUser.profileImage;
+            } else if (groupImageMap[chosenValue]) {
+                selectedProfileImage = groupImageMap[chosenValue];
+            }
         });
     }
 
@@ -391,9 +575,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
 
+            // Determine selected creator: dropdown value if visible, otherwise currentUser.username
+            const selectedCreator = (creatorSelect.style.display !== 'none' && creatorSelect.value) 
+                ? creatorSelect.value 
+                : currentUser.username;
+
             const formData = new FormData();
-            formData.append('username', currentUser.username);
-            formData.append('user_profile_image', currentUser.profileImage);
+            formData.append('username', selectedCreator);
+            formData.append('user_profile_image', selectedProfileImage);
             formData.append('post_type', postType);
             formData.append('caption', caption.value.trim());
 
@@ -404,17 +593,50 @@ document.addEventListener("DOMContentLoaded", function () {
                 formData.append('post_content', postText.value);
             }
 
+            // Disable the button and show loading text
+            uploadPostBtn.disabled = true;
+            const originalButtonText = uploadPostBtn.textContent;
+            uploadPostBtn.textContent = "מעלה...";
+
             fetch('/api/posts', {method: 'POST',
                 body: formData // Send the FormData object directly
                 })
                 .then(response => response.json())
                 .then(result => {
                     if (result.success) {
-                        BuildPost(result.addedPost, true);
-                        document.getElementById('newPostMessage').style.display = 'block';
+                        const postedAsUser = (result.addedPost.username === currentUser.username);
+
+                        // TOGGLE CHECK:
+                        // If we are in "my posts" view AND we posted as ourselves -> Show it!
+                        // If we are in "feed" view AND we posted as a group (or anything else) -> Show it!
+                        // Otherwise, don't inject it into the current view container.
+                        if ((showingOnlyMyPosts && postedAsUser) || (!showingOnlyMyPosts && !postedAsUser)) {
+                            BuildPost(result.addedPost, true);
+                            document.getElementById('newPostMessage').style.display = 'block';
+                        }
+                        else {
+                            // Clear the form fields after adding the post
+                            postText.value = '';
+                            caption.value = '';
+                            mediaUpload.value = '';
+                        }
                         newPostModal.style.display = 'none';
+
+                        // Refresh the graphs after a new post is added
+                        drawTopUsersGraph();
+                        drawUserPostTypeStatsGraph();
                     }
                 })
+                .catch(err => {
+                    console.error("Error uploading post:", err);
+                    uploadError.textContent = "שגיאה בהעלאת הפוסט. נסה שוב.";
+                    uploadError.style.display = "block";
+                })
+                .finally(() => {
+                    // reset the button state regardless of success or failure
+                    uploadPostBtn.disabled = false;
+                    uploadPostBtn.textContent = originalButtonText;
+                });
         });
     }
 
@@ -430,6 +652,12 @@ document.addEventListener("DOMContentLoaded", function () {
             if (postCard) {
                 // Get the MongoDB _id from the data attribute of the post card
                 const postId = postCard.getAttribute('data-post-id');
+
+                if (!currentUser || !currentUser.username) {
+                    alert("עליך להתחבר כדי למחוק פוסט.");
+                    return;
+                }
+
                 fetch('/api/posts/delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -440,6 +668,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (result.success) {
                         // remove the post visually if the server successfully deleted it
                         postCard.remove();
+
+                        // Refresh the graphs after a post is deleted
+                        drawTopUsersGraph();
+                        drawUserPostTypeStatsGraph();
+                    } else {
+                        alert(result.message || "אין לך הרשאה למחוק פוסט זה.");
                     }
                 })
                 .catch(err => console.error("Error deleting post:", err));
@@ -480,39 +714,85 @@ document.addEventListener("DOMContentLoaded", function () {
     // ===========================================
     // 9. CREATE EXISTING POSTS DINAMICALLY LOGIC
     // ===========================================
-    fetch('/api/posts')
-    .then(response => response.json())
-    .then(postsArray => {
-        if (Array.isArray(postsArray)) {
-            postsArray.forEach((postData) => {
-                try {
-                    BuildPost(postData, false);
-                } catch (error) {
-                    console.error("Failed to build post:", postData && postData._id, error);
+    let showingOnlyMyPosts = false;
+
+    // Reusable function to fetch and render posts from any endpoint
+    async function loadPosts() {
+        const endpoint = showingOnlyMyPosts ? '/api/posts/my-posts' : '/api/posts';
+
+        try {
+            const response = await fetch(endpoint, { credentials: 'include' });
+            if (response.ok) {
+                const postsArray = await response.json();
+            
+                // Clear existing posts from the container before rendering the new list
+                if (postContainer) {
+                    postContainer.innerHTML = ''; 
                 }
-            });
+
+                // Build each post object into the DOM
+                postsArray.forEach((postData) => BuildPost(postData, false));
+            } else {
+                console.error("Failed to load posts:", response.status);
+            }
+        } catch (err) {
+            console.error("Failed to load posts:", err);
         }
-    }) // Call BuildPost for each post object in the array
-    .catch(err => console.error("Failed to load posts:", err));
+    }
+
+    // Setup the Profile Button Toggle Listener
+    const profileBtn = document.getElementById('profile-btn');
+    if (profileBtn) {
+        profileBtn.addEventListener('click', async function() {
+            // Toggle state: true becomes false, false becomes true
+            showingOnlyMyPosts = !showingOnlyMyPosts;
+        
+            // Optional visual highlight for the active profile state
+            profileBtn.style.border = showingOnlyMyPosts ? "2px solid #0d6efd" : "none";
+
+            // Reload posts based on the toggled state
+            await loadPosts();
+        });
+    }
+
+    // Initial load when the page loads
+    loadPosts();
 
     function BuildPost(postData, isNew = false) {
         const templatePost = document.getElementById('templatePost');
         const clone = templatePost.content.cloneNode(true);
-        const postCard = clone.querySelector('.post-card');
-        postCard.setAttribute('data-post-id', postData._id || ''); // Store the MongoDB _id for reference
+        clone.querySelector('.post-card').setAttribute('data-post-id', postData._id); // Store the MongoDB _id for reference
 
         if (!isNew) {
             clone.querySelector('#newPostTag').style.display = 'none'; // Hide the new post tag for dynamically loaded existing posts
         }
 
+        // Show or hide the delete and three dots icon based on user permissions
+        const deleteIconWrapper = clone.querySelector('.delete-icon');
+        const threeDotsIconWrapper = clone.querySelector('.three-dots-container');
+        if (deleteIconWrapper) {
+            const isAuthor = currentUser && currentUser.username && postData.username === currentUser.username;
+            
+            // Check if postData.username matches any group name the user is an admin of
+            const isAdminOfGroup = currentUser && currentUser.groupAdmin && currentUser.groupAdmin.some(group => group.group_name === postData.username);
+
+            if (isAuthor || isAdminOfGroup) {
+                deleteIconWrapper.style.display = 'block';
+                threeDotsIconWrapper.style.display = 'block';
+            } else {
+                deleteIconWrapper.style.display = 'none';
+                threeDotsIconWrapper.style.display = 'none';
+            }
+        }
+
         const userImage = clone.querySelector('[user-profile-image]');
-        userImage.src = postData.user_profile_image || 'media/profile-pictures/default_profile.jpg';
+        userImage.src = postData.user_profile_image;
 
         const usernameElement = clone.querySelector('[username]');
-        usernameElement.textContent = postData.username || 'demo_user';
+        usernameElement.textContent = postData.username;
 
         const uploadTimeElement = clone.querySelector('[upload-time]');
-        uploadTimeElement.textContent = postData.upload_time || '• עכשיו';
+        uploadTimeElement.textContent = postData.upload_time;
 
         const typingPopupElement = clone.querySelector('.user-typing-popup');
         if (typingPopupElement) {
@@ -528,13 +808,12 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         else if (postData.post_type === 'image') {
             mediaElement = document.createElement('img');
-            mediaElement.src = encodeURI(postData.post_content);
-            mediaElement.alt = postData.caption || 'post image';
-            mediaElement.className = "post-main-img";
+            mediaElement.src = postData.post_content;
+            mediaElement.classList = "post-main-img";
         }
         else {
             mediaElement = document.createElement('video');
-            mediaElement.src = encodeURI(postData.post_content);
+            mediaElement.src = postData.post_content;
             mediaElement.controls = true; // מוסיף כפתורי Play, Pause ועוצמת שמע
             mediaElement.className = "video-post";
         }
@@ -556,57 +835,113 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         const likeCount = clone.querySelector('[like-count]');
-        likeCount.textContent = postData.like_count || '0';
+        likeCount.textContent = postData.like_count;
 
         const likeCountDisplay = clone.querySelector('[like-count-display]');
-        likeCountDisplay.textContent = postData.like_count || '0';
+        likeCountDisplay.textContent = postData.like_count;
+
+        // Render initial liker preview if available
+        const likerPreview = clone.querySelector('.post-liker-preview');
+        if (postData.liked_by_usernames && postData.liked_by_usernames.length > 0) {
+            const firstLiker = postData.liked_by_usernames[0];
+            likerPreview.textContent = `• אהוב על ידי ${firstLiker}`;
+            likerPreview.style.display = 'inline';
+        }
 
         const commentCount = clone.querySelector('[comment-count]');
-        commentCount.textContent = postData.comment_count || 0;
+        commentCount.textContent = postData.comment_count;
 
         const commentCountDisplay = clone.querySelector('[comment-count-display]');
-        commentCountDisplay.textContent = postData.comment_count || 0;
+        commentCountDisplay.textContent = postData.comment_count;
 
         const repostCount = clone.querySelector('[repost-count]');
-        repostCount.textContent = postData.repost_count || 0;
+        repostCount.textContent = postData.repost_count;
+        
+        const threeDotsBtn = clone.querySelector('.three-dots-btn');
+        const threeDotsDropdown = clone.querySelector('.three-dots-dropdown');
+        const editCaptionOption = clone.querySelector('.edit-caption-option');
 
+        // Determine permissions for both deleting and editing
+        const isAuthor = currentUser && currentUser.username && postData.username === currentUser.username;
+        const isAdminOfGroup = currentUser && currentUser.groupAdmin && currentUser.groupAdmin.some(group => group.group_name === postData.username);
+        const hasPermission = isAuthor || isAdminOfGroup;
+
+        if (threeDotsBtn && threeDotsDropdown) {
+           
+            threeDotsBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); 
+                
+                const isVisible = threeDotsDropdown.style.display === 'block';
+                
+              
+                document.querySelectorAll('.three-dots-dropdown').forEach(dropdown => {
+                    dropdown.style.display = 'none';
+                });
+
+               
+                if (!isVisible) {
+                    threeDotsDropdown.style.display = 'block';
+                }
+            });
+
+            
+            if (hasPermission && editCaptionOption) {
+                editCaptionOption.style.display = 'block';
+                
+                editCaptionOption.addEventListener('click', async function(e) {
+                    e.stopPropagation(); 
+                    threeDotsDropdown.style.display = 'none'; 
+
+                    const currentCaption = postData.caption || "";
+                    const newCaption = prompt("ערוך את כיתוב הפוסט שלך:", currentCaption);
+                    
+                    if (newCaption !== null && newCaption.trim() !== currentCaption) {
+                        try {
+                            const response = await fetch(`/api/posts/${postData._id}/caption`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ caption: newCaption.trim() })
+                            });
+                            
+                            const result = await response.json();
+                            if (response.ok && result.success) {
+                                
+                                postData.caption = newCaption.trim();
+                                if (captionElement) {
+                                    const strongEl = captionElement.querySelector('strong');
+                                    captionElement.innerHTML = '';
+                                    if (strongEl) captionElement.appendChild(strongEl);
+                                    captionElement.append(' ' + postData.caption);
+                                }
+                            } else {
+                                alert(result.message || "שגיאה בעדכון הכיתוב.");
+                            }
+                        } catch (error) {
+                            console.error("Error updating caption:", error);
+                            alert("שגיאה בתקשורת מול השרת.");
+                        }
+                    }
+                });
+            } else {
+                
+                editCaptionOption.style.display = 'none';
+            }
+        }
+       
+
+
+        initializePost(clone, postData); // Initialize the new post's functionality so it can be liked, commented on, etc.
         if (isNew) {
             postContainer.prepend(clone); // Add new posts to the top of the feed
         } else {
             postContainer.append(clone); // Add existing posts to the bottom of the feed
         }
-        initializePost(postCard); // Initialize the new post's functionality so it can be liked, commented on, etc.
 
         // Clear the form fields after adding the post
         postText.value = '';
         caption.value = '';
         mediaUpload.value = '';
     };
-
-    function drawDemoCanvas() {
-        const canvas = document.getElementById('demoCanvas');
-        if (!canvas || !canvas.getContext) return;
-
-        const ctx = canvas.getContext('2d');
-        const bars = [80, 45, 95, 60];
-        const labels = ['לייקים', 'תגובות', 'פוסטים', 'קבוצות'];
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.font = '14px Arial';
-        ctx.fillStyle = '#262626';
-        ctx.fillText('נתוני פעילות לדוגמה', 270, 20);
-
-        bars.forEach((value, index) => {
-            const x = 30 + index * 95;
-            const barHeight = value;
-            ctx.fillStyle = ['#f09433', '#dc2743', '#0095f6', '#28a745'][index];
-            ctx.fillRect(x, 105 - barHeight, 48, barHeight);
-            ctx.fillStyle = '#737373';
-            ctx.fillText(labels[index], x - 5, 118);
-        });
-    }
-
-    drawDemoCanvas();
 
     // ==========================================
     // 10. GIF SEARCH LOGIC (API INTEGRATION)
@@ -633,7 +968,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 data.gifs.forEach(gifUrl => {
                     const img = document.createElement('img');
                     img.src = gifUrl;
-                    img.addEventListener('click', () => addGifAsComment(gifUrl));
+                    img.addEventListener('click', () => {
+                        if (window.currentAddGifHandler) {
+                            window.currentAddGifHandler(gifUrl);
+                        } else {
+                            alert("שגיאה: לא זוהה הפוסט אליו יש להוסיף את הגיפ.");
+                        }
+                    });
                     gifResultsContainer.appendChild(img);
                 });
             } else {
@@ -660,56 +1001,49 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-   function addGifAsComment(gifUrl) {
-        if (!window.currentPostForGif) {
-            alert("שגיאה: לא זוהה הפוסט אליו יש להוסיף את הגיפ.");
-            return;
-        }
-        
-        const currentPost = window.currentPostForGif;
-        
-        // עכשיו בטוח נמצא את אזור התגובות בתוך הפוסט האמיתי
-        const commentsList = currentPost.querySelector('.comments-list');
-        const commentCountIconTxt = currentPost.querySelector('.comment-count-txt');
-        const toggleCommentsBtn = currentPost.querySelector('.toggle-comments-btn');
-        
-        if (!commentsList) {
-            console.error("הפוסט שזוהה:", currentPost);
-            alert("שגיאה: לא נמצא אזור התגובות בפוסט הזה.");
-            return;
-        }
-
-        // יצירת התגובה עם התמונה
-        const newComment = document.createElement('div');
-        newComment.classList.add('single-comment');
-        newComment.innerHTML = `<strong>${currentUser.username}</strong> <br> <img src="${gifUrl}" class="comment-gif" style="max-width: 150px; border-radius: 8px; margin-top: 5px;">`;
-        
-        // הוספה למסך
-        commentsList.appendChild(newComment);
-        commentsList.style.display = 'block'; 
-        
-        // עדכון המספרים בטקסט במידה וקיימים
-        if (commentCountIconTxt && toggleCommentsBtn) {
-            let currentCommentCount = parseInt(commentCountIconTxt.textContent.replace(/,/g, '')) || 0;
-            currentCommentCount++;
-            commentCountIconTxt.textContent = currentCommentCount.toLocaleString('en-US');
-            toggleCommentsBtn.innerHTML = `הסתר תגובות`;
-        }
-        
-        // גלילה למטה וניקוי החלון
-        commentsList.scrollTop = commentsList.scrollHeight;
-        document.getElementById('gifModal').style.display = 'none';
-        document.getElementById('gifSearchInput').value = '';
-        document.getElementById('gifResultsContainer').innerHTML = '';
-        window.currentPostForGif = null;
-    }
-
     // ==========================================
-    // 13. FACEBOOK POST LOGIC
+    // 11. FACEBOOK POST LOGIC & CANVAS (HTML5)
     // ==========================================
     const bestDayBtn = document.getElementById('bestDayBtn');
     
     if (bestDayBtn) {
+        // --- 1. ציור סמיילי על הקנבס של HTML5 ---
+        const canvas = document.getElementById('effectsCanvas');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            
+            // התאמת גודל הקנבס לחלון הנוכחי
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            bestDayBtn.addEventListener('click', () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // ניקוי הקנבס
+                
+                // ציור פרצוף
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2, canvas.height / 2, 100, 0, Math.PI * 2, true); 
+                ctx.fillStyle = "#ffcc00";
+                ctx.fill();
+                ctx.stroke();
+                
+                // ציור עיניים
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2 - 35, canvas.height / 2 - 20, 10, 0, Math.PI * 2, true); 
+                ctx.arc(canvas.width / 2 + 35, canvas.height / 2 - 20, 10, 0, Math.PI * 2, true); 
+                ctx.fillStyle = "black";
+                ctx.fill();
+                
+                // ציור פה מחייך
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2, canvas.height / 2 + 20, 50, 0, Math.PI, false); 
+                ctx.stroke();
+                
+                // העלמת הסמיילי אחרי 3 שניות
+                setTimeout(() => { ctx.clearRect(0, 0, canvas.width, canvas.height); }, 3000);
+            });
+        }
+
+        // --- 2. הלוגיקה המקורית של הפייסבוק שלך ---
         bestDayBtn.addEventListener('click', async function() {
             const originalText = bestDayBtn.textContent;
             bestDayBtn.textContent = 'מפרסם...';
@@ -717,9 +1051,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
             try {
                 // פונים לראוט שהכנו בשרת 
+                // פונים לראוט שהכנו בשרת ושולחים לו את שם המשתמש
                 const response = await fetch('/api/facebook/post', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: currentUser.username }) // <-- הוספנו את השורה הזו!
                 });
                 
                 const result = await response.json();
@@ -947,7 +1283,7 @@ document.addEventListener("DOMContentLoaded", function () {
         } else if (filterValue === "users") {
             adminSearchInput.style.display = "none";
             groupSearchInput.style.display = "block";
-        } else { // "all"
+        } else { // "all" or "my-groups"
             adminSearchInput.style.display = "none";
             groupSearchInput.style.display = "none";
         }
@@ -961,6 +1297,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (openUserSearchBtn && userSearchModal) {
        openUserSearchBtn.addEventListener("click", () => {
+            closeAllModals(); // סוגר את כל השאר קודם
             userSearchModal.style.display = "flex";
             drawGroupMembersGraph(); 
         });
@@ -1006,6 +1343,18 @@ document.addEventListener("DOMContentLoaded", function () {
                         if (data.users && data.users.length > 0) {
                             userSearchResults.innerHTML += `<div class="fw-bold mb-2 mt-2" style="color: #737373;">משתמשים</div>`;
                             data.users.forEach(user => {
+
+                                // Check if user is already a friend (assuming currentUser.friends is available globally)
+                                const isFriend = currentUser.friends && currentUser.friends.includes(user.username);
+                                const isSelf = user.username === currentUser.username;
+
+                                let friendButtonHtml = "";
+                                if (!isSelf) {
+                                    friendButtonHtml = !isFriend
+                                        ? `<button class="colorful-btn action-friend-btn" data-username="${user.username}" data-action="add" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; margin-left: 8px;">הוסף חבר</button>`
+                                        : `<button class="colorful-btn action-friend-btn" data-username="${user.username}" data-action="remove" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; margin-left: 8px; background-color: #efefef; color: #262626;">הסר חבר</button>`;
+                                }
+
                                 userSearchResults.innerHTML += `
                                     <div class="user-row mb-2" style="border-bottom: 1px solid #efefef; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
                                         <div class="d-flex align-items-center">
@@ -1013,6 +1362,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             <div class="fw-bold small">${user.username}</div>
                                         </div>
                                         <button class="colorful-btn" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer;" onclick="addToGroupPreview('${user.username}')">הוסף לקבוצה</button>
+                                        ${friendButtonHtml}
                                     </div>
                                 `;
                             });
@@ -1022,16 +1372,45 @@ document.addEventListener("DOMContentLoaded", function () {
                         if (data.groups && data.groups.length > 0) {
                             userSearchResults.innerHTML += `<div class="fw-bold mb-2 mt-3" style="color: #737373;">קבוצות</div>`;
                             data.groups.forEach(group => {
+                                // Check if the current user is the admin of this group
+                                const isAdmin = group.admin === currentUser.username;
+                                // Simple check: is the current user in the group's members array?
+                                const isMember = group.members && group.members.includes(currentUser.username);
+
+                                // Determine the action button HTML
+                                let joinButtonHtml = "";
+                                if (isAdmin) {
+                                    // If the user is the admin, don't show the leave/join button (or show a badge)
+                                    joinButtonHtml = `<span class="text-muted" style="font-size: 11px; margin-left: 8px;">(מנהל קבוצה)</span>`;
+                                } else {
+                                    // Otherwise, show Join or Leave depending on membership status
+                                    joinButtonHtml = !isMember 
+                                        ? `<button class="colorful-btn" style="padding: 4px 8px; font-size: 11px; border-radius: 6px; cursor: pointer; margin-left: 8px;" onclick="event.stopPropagation(); joinGroup('${group.group_name}')">הצטרף לקבוצה</button>` 
+                                        : `<button class="colorful-btn" style="padding: 4px 8px; font-size: 11px; border-radius: 6px; cursor: pointer; margin-left: 8px; background-color: #efefef; color: #262626;" onclick="event.stopPropagation(); leaveGroup('${group.group_name}')">צא מהקבוצה</button>`;
+                                }
+                                
+                                // Conditionally set click behavior and span visibility based on 'my-groups' filter
+                                const isMyGroups = filter === "my-groups";
+                                
+                                // Check if current filter is 'my-groups' to display the span
+                                const showMembersSpan = filter === "my-groups" 
+                                    ? `<span style="font-size: 12px; color: #0095f6;">הצג חברים</span>` 
+                                    : "";
+                                
+                                const rowClickHandler = isMyGroups ? `onclick="showGroupMembers('${group.group_name}')"` : "";
+                                const rowCursorStyle = isMyGroups ? "cursor: pointer;" : "cursor: default;";
+
                                 userSearchResults.innerHTML += `
-                                    <div class="user-row mb-2" style="border-bottom: 1px solid #efefef; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="showGroupMembers('${group.group_name}')">
+                                    <div class="user-row mb-2" style="border-bottom: 1px solid #efefef; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; ${rowCursorStyle}" ${rowClickHandler}>
                                         <div class="d-flex align-items-center">
-                                            <div style="width: 32px; height: 32px; border-radius: 50%; background: #e0e0e0; display: flex; justify-content: center; align-items: center; margin-left: 10px; font-size: 16px;">👥</div>
+                                            <img src="${group.group_profile_image}" class="suggested-profile-img" alt="${group.group_name}" style="margin-left: 10px;">
                                             <div>
                                                 <div class="fw-bold small">${group.group_name}</div>
                                                 <div class="text-muted" style="font-size: 11px;">${group.members.length} חברים</div>
                                             </div>
                                         </div>
-                                        <span style="font-size: 12px; color: #0095f6;">הצג חברים</span>
+                                        ${joinButtonHtml}
+                                        ${showMembersSpan}
                                     </div>
                                 `;
                             });
@@ -1057,7 +1436,110 @@ document.addEventListener("DOMContentLoaded", function () {
                 userSearchResults.innerHTML = "";
             });
         }
+
+        if (userSearchResults) {
+            userSearchResults.addEventListener("click", async (e) => {
+                const friendBtn = e.target.closest(".action-friend-btn");
+                if (!friendBtn) return;
+
+                const targetUsername = friendBtn.dataset.username;
+                const action = friendBtn.dataset.action;
+
+                if (action === "add") {
+                    await addFriend(targetUsername);
+                } else if (action === "remove") {
+                    await removeFriend(targetUsername);
+                }
+            });
+        }
     }
+
+    window.removeFriend = async function(targetUsername) {
+        try {
+            const response = await fetch('/remove-friend', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targetUsername: targetUsername })
+            });
+    
+            const result = await response.json();
+            if (response.ok) {
+                alert(`המשתמש ${targetUsername} הוסר מהחברים בהצלחה.`);
+                if (typeof currentUser !== 'undefined' && currentUser.friends) {
+                    currentUser.friends = currentUser.friends.filter(f => f !== targetUsername);
+                }
+                if (applyUserSearchBtn) applyUserSearchBtn.click();
+            } else {
+                alert(result.message || "שגיאה בהסרת חבר.");
+            }
+        } catch (error) {
+            console.error("Error removing friend:", error);
+        }
+    };
+
+    window.addFriend = async function(targetUsername) {
+        try {
+            const response = await fetch('/add-friend', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targetUsername: targetUsername })
+            });
+        
+            const result = await response.json();
+            if (response.ok) {
+                alert(`המשתמש ${targetUsername} נוסף לחברים בהצלחה!`);
+                // Update local currentUser object if needed or re-trigger search
+                if (typeof currentUser !== 'undefined' && currentUser.friends) {
+                    currentUser.friends.push(targetUsername);
+                }
+                if (applyUserSearchBtn) applyUserSearchBtn.click();
+            } else {
+                alert(result.message || "שגיאה בהוספת חבר.");
+            }
+        } catch (error) {
+            console.error("Error adding friend:", error);
+        }
+    };
+
+    window.joinGroup = async function(groupName) {
+        try {
+            const response = await fetch('/join-group', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groupName: groupName })
+            });
+        
+            const result = await response.json();
+            if (response.ok) {
+                alert(`הצטרפת בהצלחה לקבוצה ${groupName}!`);
+                if (applyUserSearchBtn) applyUserSearchBtn.click();
+            } else {
+                alert(result.message || "שגיאה בהצטרפות לקבוצה.");
+            }
+        } catch (error) {
+            console.error("Error joining group:", error);
+        }
+    };
+
+    window.leaveGroup = async function(groupName) {
+        try {
+            const response = await fetch('/leave-group', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groupName: groupName })
+            });
+        
+            const result = await response.json();
+            if (response.ok) {
+                alert(`עזבת את הקבוצה ${groupName} בהצלחה.`);
+                if (applyUserSearchBtn) applyUserSearchBtn.click();
+            } else {
+                alert(result.message || "שגיאה בעזיבת הקבוצה.");
+            }
+        } catch (error) {
+            console.error("Error leaving group:", error);
+        }
+    };
 
 
     // פונקציה חדשה שמושכת את רשימת חברי הקבוצה מהשרת ומציגה אותם
@@ -1072,10 +1554,24 @@ document.addEventListener("DOMContentLoaded", function () {
                 
                 data.members.forEach(member => {
                     const isAdmin = member.username === data.admin ? `<span style="color: #f09433; font-size: 12px; margin-right: 5px;">(מנהל) 👑</span>` : "";
+
+                    // Conditional rendering of the remove button based on admin status
+                    let removeButtonHtml = "";
+                    if (!isAdmin) {
+                        removeButtonHtml = `
+                            <button class="colorful-btn" 
+                                    style="padding: 4px 8px; font-size: 11px; border-radius: 6px; cursor: pointer; background-color: #ff4d4d; color: white; border: none;" 
+                                    onclick="removeUserFromGroup('${groupName}', '${member.username}')">
+                                הסר
+                            </button>
+                        `;
+                    }
+
                     list.innerHTML += `
                         <div class="d-flex align-items-center mb-3">
                             <img src="${member.user_profile_image}" style="width: 35px; height: 35px; border-radius: 50%; margin-left: 10px; object-fit: cover;">
                             <div class="fw-bold small">${member.username} ${isAdmin}</div>
+                            ${removeButtonHtml}
                         </div>
                     `;
                 });
@@ -1086,6 +1582,30 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         })
         .catch(err => console.error("Error fetching group members:", err));
+    };
+
+    window.removeUserFromGroup = async function(groupName, usernameToRemove) {
+        if (!confirm(`האם אתה בטוח שברצונך להסיר את ${usernameToRemove} מהקבוצה?`)) return;
+
+        try {
+            const response = await fetch('/remove-from-group', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groupName: groupName, usernameToRemove: usernameToRemove })
+            });
+    
+            const result = await response.json();
+            if (response.ok && result.success) {
+                alert(`המשתמש ${usernameToRemove} הוסר מהקבוצה בהצלחה.`);
+                // Refresh the modal list and the background search view
+                showGroupMembers(groupName);
+                if (applyUserSearchBtn) applyUserSearchBtn.click();
+            } else {
+                alert(result.message || "שגיאה בהסרת המשתמש מהקבוצה.");
+            }
+        } catch (error) {
+            console.error("Error removing user from group:", error);
+        }
     };
 
     // פונקציה זמנית להדגמת הוספה לקבוצה
@@ -1154,11 +1674,15 @@ document.addEventListener("DOMContentLoaded", function () {
     const closeCreateGroup = document.getElementById("closeCreateGroup");
     const submitCreateGroupBtn = document.getElementById("submitCreateGroupBtn");
     const newGroupNameInput = document.getElementById("newGroupNameInput");
+    const newGroupProfileImageInput = document.getElementById("newGroupProfileImageInput");
     const createGroupError = document.getElementById("createGroupError");
 
     if (openCreateGroupBtn && createGroupModal) {
         // פתיחה וסגירה של החלון
-        openCreateGroupBtn.addEventListener("click", () => createGroupModal.style.display = "flex");
+        openCreateGroupBtn.addEventListener("click", () => {
+            closeAllModals(); // סוגר את כל השאר קודם
+            createGroupModal.style.display = "flex"
+        });
         closeCreateGroup.addEventListener("click", () => createGroupModal.style.display = "none");
         window.addEventListener("click", (e) => {
             if (e.target === createGroupModal) createGroupModal.style.display = "none";
@@ -1167,6 +1691,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // שליחת הבקשה ליצירת קבוצה
         submitCreateGroupBtn.addEventListener("click", () => {
             const groupName = newGroupNameInput.value.trim();
+            const imageFile = newGroupProfileImageInput.files[0]; // Get the selected file
             
             if (!groupName) {
                 createGroupError.textContent = "אנא הזן שם לקבוצה.";
@@ -1174,10 +1699,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
+            // Use FormData to package text data and files together
+            const formData = new FormData();
+            formData.append("groupName", groupName);
+    
+            if (imageFile) {
+                formData.append("groupProfileImage", imageFile); // Matches backend file upload field name
+            }
+
             fetch('/create-group', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ groupName: groupName })
+                body: formData
             })
             .then(response => response.json())
             .then(data => {
@@ -1185,6 +1717,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     alert("הקבוצה " + groupName + " נוצרה בהצלחה!");
                     createGroupModal.style.display = "none";
                     newGroupNameInput.value = "";
+                    newGroupProfileImageInput.value = "";
                     createGroupError.style.display = "none";
                 } else {
                     createGroupError.textContent = data.message;
@@ -1205,7 +1738,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const deleteGroupError = document.getElementById("deleteGroupError");
 
     if (openDeleteGroupBtn && deleteGroupModal) {
-        openDeleteGroupBtn.addEventListener("click", () => deleteGroupModal.style.display = "flex");
+        openDeleteGroupBtn.addEventListener("click", () => {
+            closeAllModals(); // סוגר את כל השאר קודם
+            deleteGroupModal.style.display = "flex"}
+        );
         closeDeleteGroup.addEventListener("click", () => deleteGroupModal.style.display = "none");
         window.addEventListener("click", (e) => {
             if (e.target === deleteGroupModal) deleteGroupModal.style.display = "none";
@@ -1254,7 +1790,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const updateGroupError = document.getElementById("updateGroupError");
 
     if (openUpdateGroupBtn && updateGroupModal) {
-        openUpdateGroupBtn.addEventListener("click", () => updateGroupModal.style.display = "flex");
+        openUpdateGroupBtn.addEventListener("click", () => {
+            closeAllModals(); // סוגר את כל השאר קודם
+            updateGroupModal.style.display = "flex"
+        });
         closeUpdateGroup.addEventListener("click", () => updateGroupModal.style.display = "none");
         window.addEventListener("click", (e) => {
             if (e.target === updateGroupModal) updateGroupModal.style.display = "none";
@@ -1302,6 +1841,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (openMapBtn && mapModal) {
         openMapBtn.addEventListener("click", () => {
+            closeAllModals(); // סוגר את כל השאר קודם
             mapModal.style.display = "flex";
             
             if (!myMap) {
@@ -1314,6 +1854,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 loadMapMarkers();
 
+               
                 myMap.addListener("click", (mapsMouseEvent) => {
                     const lat = mapsMouseEvent.latLng.lat();
                     const lng = mapsMouseEvent.latLng.lng();
@@ -1329,6 +1870,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         .then(data => {
                             if (data.success) {
                                 loadMapMarkers(); 
+                            } else {
+                                // הקפצת השגיאה מהשרת (לדוגמה: "כבר יש לך מיקום במפה!")
+                                alert(data.message); 
                             }
                         });
                     }
@@ -1361,13 +1905,29 @@ document.addEventListener("DOMContentLoaded", function () {
                             title: loc.name
                         });
                         
+                        // כאן הלוגיקה שמחליטה מה להציג בחלון הקופץ!
+                        let actionButtonsHtml = "";
+                        
+                        // אם המשתמש המחובר הוא מי שיצר את הסיכה
+                        if (currentUser && currentUser.username === loc.addedBy) {
+                            actionButtonsHtml = `
+                                <hr style="margin: 8px 0;">
+                                <button onclick="editLocation('${loc._id}', '${loc.name}')" style="background:#0095f6; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px; margin-left: 5px;">ערוך שלי</button>
+                                <button onclick="deleteLocation('${loc._id}')" style="background:#ed4956; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">מחק שלי</button>
+                            `;
+                        } else {
+                            // אם זו סיכה של מישהו אחר, מציגים רק מי הוסיף אותה ללא כפתורי עריכה
+                            actionButtonsHtml = `
+                                <hr style="margin: 8px 0;">
+                                <div style="font-size: 11px; color: #888;">נוסף ע"י: <strong>${loc.addedBy}</strong></div>
+                            `;
+                        }
+
                         const infoWindow = new google.maps.InfoWindow({
                             content: `
                                 <div style="text-align: center; min-width: 120px;">
                                     <strong style="font-size: 14px;">${loc.name}</strong><br>
-                                    <hr style="margin: 8px 0;">
-                                    <button onclick="editLocation('${loc._id}', '${loc.name}')" style="background:#0095f6; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px; margin-left: 5px;">ערוך</button>
-                                    <button onclick="deleteLocation('${loc._id}')" style="background:#ed4956; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">מחק</button>
+                                    ${actionButtonsHtml}
                                 </div>
                             `
                         });
@@ -1507,3 +2067,147 @@ function drawTopUsersGraph() {
 }
 
 drawTopUsersGraph();
+
+function drawUserPostTypeStatsGraph() {
+    fetch('/statistics/user-post-types')
+        .then(response => response.json())
+        .then(res => {
+            if (!res.success || res.data.length === 0) return;
+
+            // Transform the single user statistics object into an array for D3 categories
+            const stats = res.data;
+            const data = [
+                { type: 'טקסט (Text)', count: stats.textCount, color: '#3897f0' },
+                { type: 'תמונה (Image)', count: stats.imageCount, color: '#ed4956' },
+                { type: 'וידאו (Video)', count: stats.videoCount, color: '#833ab4' }
+            ];
+            
+            d3.select("#userPostTypesGraph").selectAll("*").remove();
+
+           
+            let tooltip = d3.select("#userPostTypesGraph").select(".tooltip");
+            if (tooltip.empty()) {
+                tooltip = d3.select("body")
+                  .append("div")
+                  .attr("class", "tooltip")
+                  .style("opacity", 0)
+                  .style("position", "absolute")
+                  .style("background-color", "rgba(0, 0, 0, 0.8)")
+                  .style("color", "white")
+                  .style("border-radius", "6px")
+                  .style("padding", "8px 12px")
+                  .style("font-size", "12px")
+                  .style("pointer-events", "none")
+                  .style("z-index", "10000");
+            }
+
+           
+            const margin = {top: 10, right: 15, bottom: 20, left: 10}, 
+                  width = 230 - margin.left - margin.right,
+                  height = 130 - margin.top - margin.bottom;
+
+            const svg = d3.select("#userPostTypesGraph")
+              .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+              .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            const maxPosts = d3.max(data, d => d.count);
+            const x = d3.scaleLinear()
+              .domain([0, maxPosts])
+              .range([ 0, width]);
+              
+            svg.append("g")
+              .attr("transform", `translate(0,${height})`)
+              .call(d3.axisBottom(x).ticks(maxPosts > 5 ? 5 : maxPosts))
+              .selectAll("text")
+                .style("font-size", "9px")
+                .style("color", "#737373");
+
+           
+            const y = d3.scaleBand()
+              .range([ 0, height ])
+              .domain(data.map(d => d.type))
+              .padding(.2);
+              
+          
+            svg.append("g")
+              .call(d3.axisLeft(y))
+              .selectAll("text")
+              .remove(); 
+
+           
+            svg.selectAll("myRect")
+              .data(data)
+              .join("rect")
+              .attr("x", x(0) )
+              .attr("y", d => y(d.type))
+              .attr("height", y.bandwidth())
+              .attr("fill", d => d.color) 
+              .on("mouseover", function(event, d) {
+                  d3.select(this).style("opacity", 0.8);
+                  tooltip.style("opacity", 1);
+              })
+              .on("mousemove", function(event, d) {
+                  tooltip
+                    .html(`<strong>${d.type}</strong><br/>${d.count} פוסטים`)
+                    .style("left", (event.pageX + 15) + "px")
+                    .style("top", (event.pageY - 25) + "px");
+              })
+              .on("mouseout", function(event, d) {
+                  d3.select(this).style("opacity", 1);
+                  tooltip.style("opacity", 0);
+              })
+              .attr("width", 0)
+              .transition()
+              .duration(1000)
+              .attr("width", d => x(d.count));
+        })
+        .catch(err => console.error("Error fetching top users graph:", err));
+
+
+
+        // --- לוגיקה לפתיחה וסגירה של תפריט ניהול קבוצות ---
+    const toggleGroupMenuBtn = document.getElementById("toggleGroupMenuBtn");
+    const groupActionMenu = document.getElementById("groupActionMenu");
+
+    if (toggleGroupMenuBtn && groupActionMenu) {
+        toggleGroupMenuBtn.addEventListener("click", () => {
+            if (groupActionMenu.style.display === "none") {
+                groupActionMenu.style.display = "flex";
+            } else {
+                groupActionMenu.style.display = "none";
+            }
+        });
+        
+        // סגירת התפריט אם לוחצים במקום אחר במסך
+        document.addEventListener("click", (event) => {
+            if (!toggleGroupMenuBtn.contains(event.target) && !groupActionMenu.contains(event.target)) {
+                groupActionMenu.style.display = "none";
+            }
+        });
+    }
+    
+}
+
+drawUserPostTypeStatsGraph();
+
+
+window.addEventListener('click', () => {
+    document.querySelectorAll('.three-dots-dropdown').forEach(dropdown => {
+        dropdown.style.display = 'none';
+    });
+});
+
+function closeAllModals() {
+    // רשימה של כל ה-IDs של המודאלים שלך במערכת
+    const modalIds = ["createGroupModal", "deleteGroupModal", "updateGroupModal", "userSearchModal", "mapModal", "newPostModal", "searchModal"];
+    
+    modalIds.forEach(id => {
+        const modal = document.getElementById(id);
+        if (modal) {
+            modal.style.display = "none";
+        }
+    });
+}

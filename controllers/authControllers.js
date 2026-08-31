@@ -1,80 +1,46 @@
 const path = require('path');
 const bcrypt = require('bcrypt');
 const User = require('../models/User');
+const Group = require('../models/Group');
 
 exports.login = async (req, res) => {
-    try {
-        const { username, password } = req.body;
-        
-        const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-        if (!username || !emailPattern.test(username)) {
-            return res.status(400).json({ success: false, message: "Invalid email format on server." });
-        }
-        
-        if (!password || password.length < 9) {
-            return res.status(400).json({ success: false, message: "Password must be at least 9 characters long." });
-        }
-
-        // Find the user by email
-        const user = await User.findOne({ email: username });
-        if (!user) {
-            return res.status(404).json({ success: false, message: "User not found" });
-        }
-
-        // Compare the incoming plaintext password with the stored hash
-        const isMatch = await bcrypt.compare(password, user.password);
-
-        if (isMatch) {
-            // Update the last_login field to the current date/time
-            await User.updateOne(
-                { email: username },
-                { $set: { last_login: new Date() } }
-            );
-
-            // Store the username and user_profile_image in the session
-            req.session.username = user.username;
-            req.session.user_profile_image = user.user_profile_image;
-
-            return res.status(200).json({ success: true });
-        } else {
-            return res.status(401).json({ success: false, message: "Invalid username or password." });
-        }
-    } catch (error) {
-        console.error("Login Error:", error);
-        return res.status(500).json({ success: false, message: "Server error during login." });
+    const { username, password } = req.body;
+    
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!username || !emailPattern.test(username)) {
+        return res.status(400).json({ success: false, message: "Invalid email format on server." });
     }
-};
+    
+    if (!password || password.length < 9) {
+        return res.status(400).json({ success: false, message: "Password must be at least 9 characters long." });
+    }
 
-exports.loginForm = async (req, res) => {
-    try {
-        const { username, password } = req.body;
-        const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    // Find the user by email
+    const user = await User.findOne({ email: username });
+    if (!user) {
+        return res.status(404).json({ success: false, message: "User not found" });
+    }
 
-        if (!username || !emailPattern.test(username) || !password || password.length < 9) {
-            return res.redirect('/');
-        }
+    // Compare the incoming plaintext password with the stored hash
+    const isMatch = await bcrypt.compare(password, user.password);
 
-        const user = await User.findOne({ email: username });
-        if (!user) {
-            return res.redirect('/');
-        }
-
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.redirect('/');
-        }
-
+    if (isMatch) {
+        // Update the last_login field to the current date/time
         await User.updateOne(
             { email: username },
             { $set: { last_login: new Date() } }
         );
 
+        // Store the user information in the session
         req.session.username = user.username;
         req.session.user_profile_image = user.user_profile_image;
-        return res.redirect('/index2.html');
-    } catch (error) {
-        console.error("Login Form Error:", error);
-        return res.redirect('/');
+        req.session.group_admin = user.group_admin || [];
+        req.session.group_memberships = user.group_memberships || [];
+        req.session.friends = user.friends || [];
+
+        return res.status(200).json({ success: true });
+    } else {
+        return res.status(401).json({ success: false, message: "Invalid username or password." });
     }
 };
 
@@ -88,6 +54,109 @@ exports.protectFeed = (req, res) => {
     }
 };
 
+exports.getCurrentUser = async (req, res) => {
+    if (req.session && req.session.username) {
+        try {
+            const groupNames = req.session.group_admin || [];
+            
+            const groupAdminDetails = await Promise.all(
+                groupNames.map(async (groupName) => {
+                    const groupDoc = await Group.findOne({ group_name: groupName }); 
+
+                    return {
+                        group_name: groupName,
+                        group_profile_image: groupDoc ? groupDoc.group_profile_image : 'media/profile-pictures/default_profile.jpg'
+                    };
+                })
+            );
+
+            res.json({ 
+                username: req.session.username,
+                user_profile_image: req.session.user_profile_image,
+                group_admin: groupAdminDetails ,
+                group_memberships: req.session.group_memberships || [],
+                friends: req.session.friends || []
+            });
+        } catch (err) {
+            console.error("Error fetching group admin details:", err);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    } else {
+        res.status(401).json({ username: null, user_profile_image: null, group_admin: [], group_memberships: [], friends: [] });
+    }
+};
+
+exports.addFriend = async (req, res) => {
+    try {
+        if (!req.session || !req.session.username) {
+            return res.status(401).json({ success: false, message: "עליך להתחבר כדי לבצע פעולה זו." });
+        }
+
+        const targetUsername = req.body.targetUsername ? req.body.targetUsername.trim() : "";
+        const currentUsername = req.session.username.trim();
+
+        if (!targetUsername) {
+            return res.status(400).json({ success: false, message: "חסר שם משתמש." });
+        }
+
+        if (targetUsername === currentUsername) {
+            return res.status(400).json({ success: false, message: "אינו יכול להוסיף את עצמך לחברים." });
+        }
+
+        const currentUser = await User.findOne({ username: currentUsername });
+        if (!currentUser) {
+            return res.status(404).json({ success: false, message: "המשתמש המחובר לא נמצא." });
+        }
+
+        const targetUser = await User.findOne({ username: targetUsername });
+        if (!targetUser) {
+            return res.status(404).json({ success: false, message: "המשתמש המבוקש לא נמצא." });
+        }
+
+        if (currentUser.friends && currentUser.friends.includes(targetUsername)) {
+            return res.status(400).json({ success: false, message: "המשתמש כבר ברשימת החברים שלך." });
+        }
+
+        // Add to current user's friends list (and optionally target user if mutual)
+        await User.updateOne(
+            { username: currentUsername },
+            { $addToSet: { friends: targetUsername } }
+        );
+
+        return res.status(200).json({ success: true, message: "המשתמש נוסף לחברים בהצלחה." });
+
+    } catch (error) {
+        console.error("Add Friend Error:", error);
+        return res.status(500).json({ success: false, message: "שגיאת שרת פנימית." });
+    }
+};
+
+exports.removeFriend = async (req, res) => {
+    try {
+        if (!req.session || !req.session.username) {
+            return res.status(401).json({ success: false, message: "עליך להתחבר כדי לבצע פעולה זו." });
+        }
+
+        const targetUsername = req.body.targetUsername ? req.body.targetUsername.trim() : "";
+        const currentUsername = req.session.username.trim();
+
+        if (!targetUsername) {
+            return res.status(400).json({ success: false, message: "חסר שם משתמש." });
+        }
+
+        // Remove from current user's friends list
+        await User.updateOne(
+            { username: currentUsername },
+            { $pull: { friends: targetUsername } }
+        );
+
+        return res.status(200).json({ success: true, message: "החבר הוסר בהצלחה." });
+
+    } catch (error) {
+        console.error("Remove Friend Error:", error);
+        return res.status(500).json({ success: false, message: "שגיאת שרת פנימית." });
+    }
+};
 
 exports.register = async (req, res) => {
     try {

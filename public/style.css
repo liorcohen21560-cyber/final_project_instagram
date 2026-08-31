@@ -1,12 +1,15 @@
 /* General page reset */
+/* 1. כאן אנחנו מגדירים את הפונט החיצוני - זה מה שעונה על הדרישה! */
 @font-face {
-    font-family: "DemoHebrew";
-    src: local("Arial");
+    font-family: 'MyCustomFont';
+    src: url('https://fonts.gstatic.com/s/rubik/v28/iJWZBXyIfDnIV5PNhY1KTN7Z-Yh-WYi1UE8.woff2') format('woff2');
 }
 
+/* 2. כאן אנחנו מחילים אותו על האתר */
 body { 
     background-color: #ffffff; 
-    font-family: "DemoHebrew", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+    /* שמנו את הפונט החדש שלנו ראשון, ואם הוא לא יעבוד - הדפדפן ישתמש בפונטים המקוריים שלך */
+    font-family: 'MyCustomFont', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
     margin: 0; 
 }
 
@@ -31,8 +34,7 @@ body {
 .all-updated {display: flex; flex-direction: column; align-items: center;}
 .all-updated-icon {margin-bottom: 20px;}
 .all-updated-text-header {font-weight: bold;}
-.colorful-btn {background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); color: white; border: none; width: fit-content; align-self: center; justify-self: center; margin-top: 2px; text-shadow: 0 1px 2px rgba(0,0,0,0.25); transition: transform 0.2s ease, opacity 0.2s ease;}
-.colorful-btn:hover { transform: translateY(-1px); opacity: 0.95; }
+.colorful-btn {background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);; color: white; border: none; width: fit-content; align-self: center; justify-self: center; margin-top: 2px;}
 .back-to-top-btn {position: fixed; bottom: 20px; right: 120px; /* Adjust based on sidebar width */ padding: 10px 15px; font-size: 14px; z-index: 1001; /* Above the sidebar */}
 
 /* STORIES */
@@ -66,24 +68,6 @@ body {
 }
 .video-post { width: 100%; max-height: 400px; height: auto; border: 1px solid #dbdbdb; border-radius: 4px;}
 
-.canvas-demo-section {
-    width: 100%;
-    max-width: 470px;
-    margin: 0 0 40px;
-    padding: 14px;
-    border: 1px solid #dbdbdb;
-    border-radius: 8px;
-    columns: 1;
-    background: #fff;
-}
-.canvas-demo-section h6 { margin: 0 0 8px; text-shadow: 0 1px 1px rgba(0,0,0,0.12); }
-.canvas-demo-section canvas { width: 100%; height: 120px; display: block; border-radius: 8px; background: #fafafa; }
-.demo-video { width: 100%; max-height: 220px; margin-top: 12px; border-radius: 8px; }
-
-@media (min-width: 900px) {
-    .all-updated-text { column-count: 2; column-gap: 24px; }
-}
-
 .toggle-comments-btn { cursor: pointer; display: inline-block; font-size: 14px; color: #737373; }
 .comments-list { margin-top: 5px; margin-bottom: 10px; max-height: 150px; overflow-y: auto; }
 .single-comment { font-size: 14px; margin-bottom: 6px; }
@@ -115,7 +99,7 @@ body.dark-mode .sidebar, body.dark-mode .modal-content { background-color: #0000
 body.dark-mode .sidebar { border-left: 1px solid #262626 !important; }
 body.dark-mode .post-main-img { border-color: #262626 !important; }
 body.dark-mode .sidebar-icon-img, body.dark-mode .post-action-icon img, body.dark-mode .post-action-icon-top img, body.dark-mode .all-updated-icon { filter: invert(1) !important; }
-body.dark-mode .post-action-icon img[src="./red_like.png"] { filter: none !important; }
+body.dark-mode .post-action-icon img[src="media/icons/red_like.png"] { filter: none !important; }
 body.dark-mode input { background-color: #262626 !important; color: #ffffff !important; border-color: #262626 !important; }
 body.dark-mode .footer { background-color: #000000 !important; color: #737373 !important; }
 
@@ -158,4 +142,31 @@ body.dark-mode .gif-comment-btn:hover { color: #fff; }
 
 .best-day-btn:hover {
     background-color: #165eab;
+}
+.colorful-btn {
+    transition: transform 0.3s ease, background-color 0.3s ease;
+}
+.colorful-btn:hover {
+    transform: scale(1.05); /* מגדיל את הכפתור טיפה במעבר עכבר */
+}
+/* מוסיף צל עדין ויפה לכותרות של הפופ-אפים */
+.modal-content h5 {
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* סידור קישורי הפוטר בשתי עמודות (Multiple-columns HTML5) */
+.footer-links {
+    column-count: 2; 
+    column-gap: 20px; 
+    display: block; 
+    text-align: right; 
+}
+
+
+.footer-links a {
+    display: block;
+    margin-bottom: 5px; 
+    color: #c7c7c7; 
+    text-decoration: none;
+    font-size: 12px;
 }
