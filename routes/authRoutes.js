@@ -14,7 +14,7 @@ router.post('/remove-friend', authController.removeFriend);
 router.get('/index2.html', authController.protectFeed);
 router.post('/register', authController.register);
 router.delete('/delete-account', authController.deleteAccount);
-router.put('/update-username', authController.updateUsername);
+router.put('/update-email', authController.updateEmail);
 router.post('/create-group', upload.single('groupProfileImage'), groupController.createGroup);
 router.delete('/delete-group', groupController.deleteGroup);
 router.put('/update-group-name', groupController.updateGroupName);
