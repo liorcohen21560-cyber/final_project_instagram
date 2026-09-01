@@ -63,7 +63,18 @@ exports.createGroup = async (req, res) => {
             }
         );
 
-        return res.status(201).json({ success: true, message: "הקבוצה נוצרה בהצלחה." });
+        // **עדכון מיידי של ה-Session**
+        if (!req.session.group_admin) req.session.group_admin = [];
+        if (!req.session.group_memberships) req.session.group_memberships = [];
+
+        if (!req.session.group_admin.includes(groupName)) {
+            req.session.group_admin.push(groupName);
+        }
+        if (!req.session.group_memberships.includes(groupName)) {
+            req.session.group_memberships.push(groupName);
+        }
+
+        return res.status(200).json({ success: true, message: "הקבוצה נוצרה בהצלחה." });
 
     } catch (error) {
         console.error("Create Group Error:", error);
@@ -109,6 +120,14 @@ exports.deleteGroup = async (req, res) => {
                 } 
             }
         );
+
+        // **עדכון מיידי של ה-Session**
+        if (req.session.group_admin) {
+            req.session.group_admin = req.session.group_admin.filter(g => g !== groupName);
+        }
+        if (req.session.group_memberships) {
+            req.session.group_memberships = req.session.group_memberships.filter(g => g !== groupName);
+        }
 
         return res.status(200).json({ success: true, message: "הקבוצה נמחקה בהצלחה." });
 
@@ -160,6 +179,16 @@ exports.updateGroupName = async (req, res) => {
             { group_memberships: currentName },
             { $set: { "group_memberships.$": newName } }
         );
+
+        // **עדכון מיידי של ה-Session**
+        if (req.session.group_admin) {
+            const adminIdx = req.session.group_admin.indexOf(currentName);
+            if (adminIdx !== -1) req.session.group_admin[adminIdx] = newName;
+        }
+        if (req.session.group_memberships) {
+            const memberIdx = req.session.group_memberships.indexOf(currentName);
+            if (memberIdx !== -1) req.session.group_memberships[memberIdx] = newName;
+        }
 
         return res.status(200).json({ success: true, message: "שם הקבוצה עודכן בהצלחה." });
 
@@ -216,6 +245,14 @@ exports.addUserToGroup = async (req, res) => {
             { $push: { group_memberships: groupName } }
         );
 
+        // **אם המשתמש שצורף הוא המשתמש המחובר כרגע (למשל מנהל שמצרף את עצמו)**
+        if (targetUsername === currentUsername) {
+            if (!req.session.group_memberships) req.session.group_memberships = [];
+            if (!req.session.group_memberships.includes(groupName)) {
+                req.session.group_memberships.push(groupName);
+            }
+        }
+
         return res.status(200).json({ success: true, message: "המשתמש צורף לקבוצה בהצלחה." });
 
     } catch (error) {
@@ -257,6 +294,12 @@ exports.joinGroup = async (req, res) => {
             { username: currentUsername },
             { $push: { group_memberships: groupName } }
         );
+
+        // **עדכון מיידי של ה-Session**
+        if (!req.session.group_memberships) req.session.group_memberships = [];
+        if (!req.session.group_memberships.includes(groupName)) {
+            req.session.group_memberships.push(groupName);
+        }
 
         return res.status(200).json({ success: true, message: "הצטרפת לקבוצה בהצלחה." });
 
@@ -304,6 +347,11 @@ exports.leaveGroup = async (req, res) => {
             { username: currentUsername },
             { $pull: { group_memberships: groupName } }
         );
+
+        // **עדכון מיידי של ה-Session**
+        if (req.session.group_memberships) {
+            req.session.group_memberships = req.session.group_memberships.filter(g => g !== groupName);
+        }
 
         return res.status(200).json({ success: true, message: "עזבת את הקבוצה בהצלחה." });
 
@@ -357,6 +405,11 @@ exports.removeUserFromGroup = async (req, res) => {
             { username: usernameToRemove },
             { $pull: { group_memberships: groupName } }
         );
+
+        // **עדכון ה-Session במידה והמשתמש שהוסר הוא המשתמש המחובר כרגע**
+        if (usernameToRemove === currentUsername && req.session.group_memberships) {
+            req.session.group_memberships = req.session.group_memberships.filter(g => g !== groupName);
+        }
 
         return res.status(200).json({ success: true, message: "המשתמש הוסר בהצלחה מהקבוצה." });
 

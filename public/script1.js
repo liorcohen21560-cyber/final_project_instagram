@@ -493,7 +493,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const creatorSelect = document.getElementById('creator');
 
     if (createPostBtn) {
-        createPostBtn.addEventListener('click', function() {
+        createPostBtn.addEventListener('click', async function() {
+            // Re-fetch and update the global currentUser object if your app has this function
+            if (typeof fetchCurrentUser === 'function') {
+                await fetchCurrentUser();
+            }
+
             // Check if user is admin of at least one group
             if (currentUser.groupAdmin && currentUser.groupAdmin.length > 0) {
                 creatorSelect.style.display = 'block';
