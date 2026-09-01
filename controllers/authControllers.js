@@ -57,7 +57,13 @@ exports.protectFeed = (req, res) => {
 exports.getCurrentUser = async (req, res) => {
     if (req.session && req.session.username) {
         try {
-            const groupNames = req.session.group_admin || [];
+            // Fetch fresh user document from MongoDB
+            const userDoc = await User.findOne({ username: req.session.username });
+            if (!userDoc) {
+                return res.status(404).json({ error: "User not found" });
+            }
+
+            const groupNames = userDoc.group_admin || [];
             
             const groupAdminDetails = await Promise.all(
                 groupNames.map(async (groupName) => {
@@ -71,11 +77,11 @@ exports.getCurrentUser = async (req, res) => {
             );
 
             res.json({ 
-                username: req.session.username,
-                user_profile_image: req.session.user_profile_image,
+                username: userDoc.username,
+                user_profile_image: userDoc.user_profile_image,
                 group_admin: groupAdminDetails ,
-                group_memberships: req.session.group_memberships || [],
-                friends: req.session.friends || []
+                group_memberships: userDoc.group_memberships || [],
+                friends: userDoc.friends || []
             });
         } catch (err) {
             console.error("Error fetching group admin details:", err);
@@ -123,6 +129,14 @@ exports.addFriend = async (req, res) => {
             { $addToSet: { friends: targetUsername } }
         );
 
+        // **Immediate Session Update**
+        if (!req.session.friends) {
+            req.session.friends = [];
+        }
+        if (!req.session.friends.includes(targetUsername)) {
+            req.session.friends.push(targetUsername);
+        }
+
         return res.status(200).json({ success: true, message: "המשתמש נוסף לחברים בהצלחה." });
 
     } catch (error) {
@@ -149,6 +163,11 @@ exports.removeFriend = async (req, res) => {
             { username: currentUsername },
             { $pull: { friends: targetUsername } }
         );
+
+        // **Immediate Session Update**
+        if (req.session.friends) {
+            req.session.friends = req.session.friends.filter(f => f !== targetUsername);
+        }
 
         return res.status(200).json({ success: true, message: "החבר הוסר בהצלחה." });
 
