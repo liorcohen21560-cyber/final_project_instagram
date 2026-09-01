@@ -99,7 +99,7 @@ body.dark-mode .sidebar, body.dark-mode .modal-content { background-color: #0000
 body.dark-mode .sidebar { border-left: 1px solid #262626 !important; }
 body.dark-mode .post-main-img { border-color: #262626 !important; }
 body.dark-mode .sidebar-icon-img, body.dark-mode .post-action-icon img, body.dark-mode .post-action-icon-top img, body.dark-mode .all-updated-icon { filter: invert(1) !important; }
-body.dark-mode .post-action-icon img[src="./red_like.png"] { filter: none !important; }
+body.dark-mode .post-action-icon img[src="media/icons/red_like.png"] { filter: none !important; }
 body.dark-mode input { background-color: #262626 !important; color: #ffffff !important; border-color: #262626 !important; }
 body.dark-mode .footer { background-color: #000000 !important; color: #737373 !important; }
 

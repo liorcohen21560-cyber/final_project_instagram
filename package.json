@@ -2,9 +2,10 @@
   "name": "first_targil",
   "version": "1.0.0",
   "description": "",
-  "main": "script.js",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "test": "node --check server.js && node --check controllers/authControllers.js && node --check controllers/groupControllers.js && node --check controllers/locationControllers.js && node --check controllers/postController.js"
   },
   "repository": {
     "type": "git",
