@@ -6,32 +6,37 @@ const Group = require('../models/Group');
 exports.login = async (req, res) => {
     const { username, password } = req.body;
     
+    // בדיקת תקינות אימייל
     const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!username || !emailPattern.test(username)) {
         return res.status(400).json({ success: false, message: "Invalid email format on server." });
     }
     
+    // בדיקת אורך סיסמה
     if (!password || password.length < 9) {
         return res.status(400).json({ success: false, message: "Password must be at least 9 characters long." });
     }
 
-    // Find the user by email
+    // בדיקת תקינות סיסמה: אות גדולה, אות קטנה ומספר
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+        return res.status(400).json({ success: false, message: "הסיסמה חייבת להכיל לפחות אות גדולה אחת, אות קטנה אחת ומספר." });
+    }
+
+    // חיפוש המשתמש
     const user = await User.findOne({ email: username });
     if (!user) {
         return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Compare the incoming plaintext password with the stored hash
+    // השוואת סיסמאות
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (isMatch) {
-        // Update the last_login field to the current date/time
         await User.updateOne(
             { email: username },
             { $set: { last_login: new Date() } }
         );
 
-        // Store the user information in the session
         req.session.username = user.username;
         req.session.user_profile_image = user.user_profile_image;
         req.session.group_admin = user.group_admin || [];
@@ -166,6 +171,22 @@ exports.register = async (req, res) => {
             return res.status(400).json({ success: false, message: "כל השדות חסרים." });
         }
 
+        // בדיקת תקינות אימייל
+        const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!emailPattern.test(email)) {
+            return res.status(400).json({ success: false, message: "פורמט האימייל אינו תקין." });
+        }
+
+        // בדיקת אורך סיסמה
+        if (password.length < 9) {
+            return res.status(400).json({ success: false, message: "הסיסמה חייבת להכיל לפחות 9 תווים." });
+        }
+
+        // בדיקת תקינות סיסמה: אות גדולה, אות קטנה ומספר
+        if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+            return res.status(400).json({ success: false, message: "הסיסמה חייבת להכיל לפחות אות גדולה אחת, אות קטנה אחת ומספר." });
+        }
+
         // בדיקה אם המשתמש כבר קיים
         const existingUser = await User.findOne({ $or: [{ email: email }, { username: username }] });
         if (existingUser) {
@@ -222,7 +243,7 @@ exports.deleteAccount = async (req, res) => {
     }
 };
 
-exports.updateUsername = async (req, res) => {
+exports.updateEmail = async (req, res) => {
     try {
         // 1. נוודא שיש משתמש מחובר
         if (!req.session || !req.session.username) {
@@ -230,32 +251,33 @@ exports.updateUsername = async (req, res) => {
         }
 
         const currentUsername = req.session.username;
-        const { newUsername } = req.body;
+        const { newEmail } = req.body;
 
-        // 2. נוודא שהוזן שם תקין ושהוא לא זהה לשם הנוכחי
-        if (!newUsername || newUsername.toLowerCase() === currentUsername.toLowerCase()) {
-            return res.status(400).json({ success: false, message: "יש להזין שם משתמש חדש שונה מהנוכחי." });
+        // 2. בדיקת תקינות בשרת
+        const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!newEmail || !emailPattern.test(newEmail)) {
+            return res.status(400).json({ success: false, message: "כתובת האימייל אינה תקינה." });
         }
 
-        // 3. נוודא שהשם החדש לא תפוס כבר על ידי משתמש אחר במערכת
-        const existingUser = await User.findOne({ username: newUsername });
+        // 3. נוודא שהאימייל החדש לא תפוס כבר
+        const existingUser = await User.findOne({ email: newEmail });
         if (existingUser) {
-            return res.status(400).json({ success: false, message: "שם המשתמש החדש כבר תפוס, אנא בחר שם אחר." });
+            return res.status(400).json({ success: false, message: "האימייל הזה כבר רשום במערכת. אנא בחר אימייל אחר." });
         }
 
         // 4. עדכון במסד הנתונים
         await User.updateOne(
             { username: currentUsername },
-            { $set: { username: newUsername } }
+            { $set: { email: newEmail } }
         );
 
-        // 5. הצעד הקריטי: עדכון ה-Session בשרת לשם החדש!
-        req.session.username = newUsername;
+        // שים לב: אנחנו לא מעדכנים את ה-Session כאן כמו שעשינו בשם משתמש, 
+        // כי שם המשתמש (שנמצא בסשן) נשאר אותו דבר!
 
-        return res.status(200).json({ success: true, message: "שם המשתמש עודכן בהצלחה." });
+        return res.status(200).json({ success: true, message: "האימייל עודכן בהצלחה." });
 
     } catch (error) {
-        console.error("Update Username Error:", error);
+        console.error("Update Email Error:", error);
         return res.status(500).json({ success: false, message: "שגיאת שרת פנימית." });
     }
 };

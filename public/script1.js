@@ -1101,37 +1101,37 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // --- לוגיקת עדכון שם משתמש ---
-    const updateUsernameBtn = document.getElementById("updateUsernameBtn");
-    const newUsernameInput = document.getElementById("newUsernameInput");
+    // --- לוגיקת עדכון אימייל ---
+    const updateEmailBtn = document.getElementById("updateEmailBtn");
+    const newEmailInput = document.getElementById("newEmailInput");
 
-    if (updateUsernameBtn && newUsernameInput) {
-        updateUsernameBtn.addEventListener("click", () => {
-            const newUsername = newUsernameInput.value.trim();
+    if (updateEmailBtn && newEmailInput) {
+        updateEmailBtn.addEventListener("click", () => {
+            const newEmail = newEmailInput.value.trim();
             
-            if (newUsername === "") {
-                alert("אנא הזן שם משתמש חדש.");
+            // בדיקת תקינות אימייל בסיסית
+            const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!newEmail || !emailPattern.test(newEmail)) {
+                alert("אנא הזן כתובת אימייל תקינה.");
                 return;
             }
 
-            fetch('/update-username', {
-                method: 'PUT', // שיטת PUT מיועדת לעדכון נתונים קיימים
+            fetch('/update-email', {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ newUsername: newUsername })
+                body: JSON.stringify({ newEmail: newEmail })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert("שם המשתמש עודכן בהצלחה ל: " + newUsername);
-                    newUsernameInput.value = ""; // מאפסים את השדה
-                    
-                    // אופציונלי: סגירת הפופ-אפ אוטומטית אחרי העדכון
+                    alert("כתובת האימייל עודכנה בהצלחה ל: " + newEmail);
+                    newEmailInput.value = ""; // איפוס השדה
                     document.getElementById("settingsModal").style.display = "none";
                 } else {
                     alert("שגיאה: " + data.message);
                 }
             })
-            .catch(err => console.error("Error updating username:", err));
+            .catch(err => console.error("Error updating email:", err));
         });
     }
 
